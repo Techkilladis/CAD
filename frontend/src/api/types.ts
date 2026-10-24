@@ -502,3 +502,58 @@ export interface ReunificationCase {
   updatedAt: string;
   candidates: CaseCandidate[];
 }
+
+// ---- Phase E: reports, audit, users, settings ----
+export interface ReportsPayload {
+  asOf: string;
+  occupancy: DistrictOccupancy;
+  resources: ResourceMatrix;
+  medical: { totals: PriorityCounts; perShelter: MedicalSummary['perShelter'] };
+  volunteers: {
+    totals: { shifts: number; required: number; filled: number; unfilled: number; coveragePercent: number | null };
+    perShelter: { shelterId: string; shelterName: string; shifts: number; required: number; filled: number; coveragePercent: number | null }[];
+  };
+  donations: { resourceType: ResourceType; status: DonationStatus; quantity: number; count: number }[];
+  transfersByStatus: { status: TransferStatus; count: number }[];
+  alerts: { alertType: AlertType; status: AlertStatus; count: number }[];
+  reunification: { status: ReunificationStatus; count: number }[] | null;
+  checkins: { status: CheckinStatus; count: number; people: number }[];
+}
+
+export interface AuditRow {
+  id: string;
+  userId: string | null;
+  user: { id: string; name: string; role: Role } | null;
+  action: string;
+  entity: string;
+  entityId: string;
+  metadata: Record<string, unknown> | null;
+  timestamp: string;
+}
+
+export interface AuditPage {
+  items: AuditRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+  pages: number;
+}
+
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  role: Role;
+  isActive: boolean;
+  skills: string | null;
+  languages: string | null;
+  createdAt: string;
+  shelters?: { id: string; name: string }[];
+}
+
+export interface SettingsPayload {
+  settings: { overcrowdingThreshold: number; criticalMedicalCount: number; transferSurplusMultiplier: number; alertScanIntervalMs: number };
+  rules: Record<string, { min: number; max: number; integer: boolean; label: string }>;
+  integrations: { name: string; local: string; aws: string }[];
+}

@@ -143,6 +143,76 @@ export class DashboardService {
     };
   }
 
+  /** Upcoming shift coverage per shelter. */
+  static async volunteers(user: AuthUser, shelterId?: string) {
+    const where = scopedWhere(user, shelterId);
+    const shelters = await prisma.shelter.findMany({ where: { AND: [where, { status: { not: 'INACTIVE' } }] }, select: { id: true, name: true }, orderBy: { name: 'asc' } });
+    const shifts = await prisma.volunteerShift.findMany({
+      where: { shelterId: { in: shelters.map((s) => s.id) }, status: 'OPEN', endTime: { gte: new Date() } },
+      include: { _count: { select: { assignments: true } } },
+    });
+    const perShelter = shelters.map((s) => {
+      const mine = shifts.filter((x) => x.shelterId === s.id);
+      const required = mine.reduce((a, x) => a + x.requiredCount, 0);
+      const filled = mine.reduce((a, x) => a + Math.min(x._count.assignments, x.requiredCount), 0);
+      return { shelterId: s.id, shelterName: s.name, shifts: mine.length, required, filled, coveragePercent: required > 0 ? Math.round((filled / required) * 100) : null };
+    });
+    const required = perShelter.reduce((a, s) => a + s.required, 0);
+    const filled = perShelter.reduce((a, s) => a + s.filled, 0);
+    return {
+      asOf: new Date().toISOString(),
+      totals: { shifts: shifts.length, required, filled, unfilled: required - filled, coveragePercent: required > 0 ? Math.round((filled / required) * 100) : null },
+      perShelter,
+    };
+  }
+
+  /** Donation totals by resource type and status. */
+  static async donations(user: AuthUser, shelterId?: string) {
+    const where = scopedWhere(user, shelterId);
+    const shelters = await prisma.shelter.findMany({ where, select: { id: true } });
+    const rows = await prisma.donation.groupBy({
+      by: ['resourceType', 'status'],
+      where: { shelterId: { in: shelters.map((s) => s.id) } },
+      _sum: { quantity: true },
+      _count: { _all: true },
+    });
+    return {
+      asOf: new Date().toISOString(),
+      rows: rows.map((r) => ({ resourceType: r.resourceType, status: r.status, quantity: r._sum.quantity ?? 0, count: r._count._all })),
+    };
+  }
+
+  /** One aggregate payload for the reports pages (admin: whole district, coordinator: own shelters). */
+  static async reports(user: AuthUser, shelterId?: string) {
+    const [district, resources, medical, volunteers, donations] = await Promise.all([
+      DashboardService.district(user, shelterId),
+      DashboardService.resources(user, shelterId),
+      DashboardService.medical(user, shelterId),
+      DashboardService.volunteers(user, shelterId),
+      DashboardService.donations(user, shelterId),
+    ]);
+    const shelterIds = (await prisma.shelter.findMany({ where: scopedWhere(user, shelterId), select: { id: true } })).map((s) => s.id);
+    const involved = { OR: [{ fromShelterId: { in: shelterIds } }, { toShelterId: { in: shelterIds } }] };
+    const [transfers, alerts, cases, checkins] = await Promise.all([
+      prisma.transfer.groupBy({ by: ['status'], where: involved, _count: { _all: true } }),
+      prisma.alertLog.groupBy({ by: ['alertType', 'status'], where: { shelterId: { in: shelterIds } }, _count: { _all: true } }),
+      user.role === 'ADMIN' ? prisma.reunificationCase.groupBy({ by: ['status'], _count: { _all: true } }) : Promise.resolve(null),
+      prisma.checkin.groupBy({ by: ['status'], where: { shelterId: { in: shelterIds } }, _count: { _all: true }, _sum: { familySize: true } }),
+    ]);
+    return {
+      asOf: new Date().toISOString(),
+      occupancy: district,
+      resources,
+      medical: { totals: medical.totals, perShelter: medical.perShelter },
+      volunteers,
+      donations: donations.rows,
+      transfersByStatus: transfers.map((t) => ({ status: t.status, count: t._count._all })),
+      alerts: alerts.map((a) => ({ alertType: a.alertType, status: a.status, count: a._count._all })),
+      reunification: cases ? cases.map((c) => ({ status: c.status, count: c._count._all })) : null,
+      checkins: checkins.map((c) => ({ status: c.status, count: c._count._all, people: c._sum.familySize ?? 0 })),
+    };
+  }
+
   static async resources(user: AuthUser, shelterId?: string) {
     const shelterWhere = scopedWhere(user, shelterId);
     const shelters = await prisma.shelter.findMany({

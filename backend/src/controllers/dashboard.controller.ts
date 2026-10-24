@@ -22,3 +22,13 @@ export const getMedical = asyncHandler(async (req: AuthenticatedRequest, res: Re
   const q = dashboardQuery.parse(req.query);
   res.json(await DashboardService.medical(req.user!, q.shelterId));
 });
+
+export const getVolunteerCoverage = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  res.json(await DashboardService.volunteers(req.user!, dashboardQuery.parse(req.query).shelterId));
+});
+export const getDonationTotals = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  res.json(await DashboardService.donations(req.user!, dashboardQuery.parse(req.query).shelterId));
+});
+export const getReports = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  res.json(await DashboardService.reports(req.user!, dashboardQuery.parse(req.query).shelterId));
+});

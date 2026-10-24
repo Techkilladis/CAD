@@ -11,6 +11,11 @@ import { ShelterFinderPage } from './pages/public/ShelterFinderPage';
 import { ShelterDetailPage } from './pages/public/ShelterDetailPage';
 import { RegisterPage } from './pages/public/RegisterPage';
 import { LoginPage } from './pages/public/LoginPage';
+import { AdminReportsPage } from './pages/admin/AdminReportsPage';
+import { AdminUsersPage } from './pages/admin/AdminUsersPage';
+import { AdminAuditPage } from './pages/admin/AdminAuditPage';
+import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
+import { CoordinatorReportsPage } from './pages/coordinator/CoordinatorReportsPage';
 import { EmergencyPage } from './pages/public/EmergencyPage';
 import { AdminReunificationPage } from './pages/admin/AdminReunificationPage';
 import { CoordinatorReunificationPage } from './pages/coordinator/CoordinatorReunificationPage';
@@ -70,6 +75,10 @@ function App() {
                 <Route path="medical" element={<AdminMedicalPage />} />
                 <Route path="donations" element={<AdminDonationsPage />} />
                 <Route path="reunification" element={<AdminReunificationPage />} />
+                <Route path="reports" element={<AdminReportsPage />} />
+                <Route path="users" element={<AdminUsersPage />} />
+                <Route path="audit" element={<AdminAuditPage />} />
+                <Route path="settings" element={<AdminSettingsPage />} />
               </Route>
             </Route>
 
@@ -84,6 +93,7 @@ function App() {
                 <Route path="medical" element={<CoordinatorMedicalPage />} />
                 <Route path="donations" element={<CoordinatorDonationsPage />} />
                 <Route path="reunification" element={<CoordinatorReunificationPage />} />
+                <Route path="reports" element={<CoordinatorReportsPage />} />
                 <Route path="shelter" element={<CoordinatorShelterPage />} />
               </Route>
             </Route>

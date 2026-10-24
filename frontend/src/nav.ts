@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { LayoutDashboard, Building2, Users, Boxes, Gauge, Settings, CalendarClock, Truck, Bell, HandHeart, HeartPulse, Gift, UserCircle, UserSearch } from 'lucide-react';
+import { LayoutDashboard, Building2, Users, Boxes, Gauge, Settings, CalendarClock, Truck, Bell, HandHeart, HeartPulse, Gift, UserCircle, UserSearch, BarChart3, ScrollText, UserCog } from 'lucide-react';
 import type { Role } from './api/types';
 
 export interface NavItem {
@@ -23,6 +23,10 @@ export const NAV: Record<Role, NavItem[]> = {
     { to: '/admin/medical', label: 'Medical', icon: HeartPulse },
     { to: '/admin/donations', label: 'Donations', icon: Gift },
     { to: '/admin/reunification', label: 'Reunification', icon: UserSearch },
+    { to: '/admin/reports', label: 'Reports', icon: BarChart3 },
+    { to: '/admin/users', label: 'Users', icon: UserCog },
+    { to: '/admin/audit', label: 'Audit log', icon: ScrollText },
+    { to: '/admin/settings', label: 'Settings', icon: Settings },
   ],
   COORDINATOR: [
     { to: '/coordinator', label: 'Overview', icon: LayoutDashboard, end: true },
@@ -34,6 +38,7 @@ export const NAV: Record<Role, NavItem[]> = {
     { to: '/coordinator/medical', label: 'Medical', icon: HeartPulse },
     { to: '/coordinator/donations', label: 'Donations', icon: Gift },
     { to: '/coordinator/reunification', label: 'Reunification', icon: UserSearch },
+    { to: '/coordinator/reports', label: 'Reports', icon: BarChart3 },
     { to: '/coordinator/shelter', label: 'Shelter settings', icon: Settings },
   ],
   VOLUNTEER: [
