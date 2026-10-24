@@ -1,0 +1,228 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  COORDINATOR
+  ADMIN
+  VOLUNTEER
+}
+
+enum ResourceType {
+  FOOD
+  WATER
+  MEDICINE
+  BLANKETS
+}
+
+enum TransferStatus {
+  PENDING
+  APPROVED
+  IN_TRANSIT
+  RECEIVED
+  REJECTED
+  CANCELLED
+}
+
+enum AlertType {
+  LOW_STOCK
+  OVERCROWDING
+  FULL_SHELTER
+  CRITICAL_MEDICAL_NEED
+  TRANSFER_REQUIRED
+}
+
+enum AlertStatus {
+  ACTIVE
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+enum ShelterStatus {
+  ACTIVE
+  INACTIVE
+  FULL
+  EMERGENCY_CLOSED
+}
+
+enum CheckinStatus {
+  PENDING
+  CONFIRMED
+  CHECKED_OUT
+}
+
+enum ReunificationStatus {
+  MISSING
+  POTENTIAL_MATCH
+  REUNITED
+  CLOSED
+}
+
+model User {
+  id                 String     @id @default(uuid())
+  name               String
+  email              String     @unique
+  phone              String?
+  role               Role       @default(VOLUNTEER)
+  cognitoSub         String?
+  createdAt          DateTime   @default(now())
+  shelters           Shelter[]  @relation("Coordinator")
+  requestedTransfers Transfer[] @relation("Requester")
+  approvedTransfers  Transfer[] @relation("Approver")
+  shifts             VolunteerAssignment[]
+  auditLogs          AuditLog[]
+}
+
+model Shelter {
+  id                 String          @id @default(uuid())
+  name               String
+  address            String
+  latitude           Float
+  longitude          Float
+  capacityTotal      Int
+  capacityOccupied   Int             @default(0)
+  coordinatorId      String?
+  coordinator        User?           @relation("Coordinator", fields: [coordinatorId], references: [id])
+  status             ShelterStatus   @default(ACTIVE)
+  description        String?
+  contactInfo        String?
+  supportedLanguages String?         @default("[]") // JSON string for languages
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  resources          Resource[]
+  checkins           Checkin[]
+  transfersFrom      Transfer[]      @relation("TransferFrom")
+  transfersTo        Transfer[]      @relation("TransferTo")
+  alerts             AlertLog[]
+  shifts             VolunteerShift[]
+  donations          Donation[]
+}
+
+model Resource {
+  id                String       @id @default(uuid())
+  shelterId         String
+  shelter           Shelter      @relation(fields: [shelterId], references: [id])
+  resourceType      ResourceType
+  quantity          Int
+  unit              String
+  lowStockThreshold Int          @default(10)
+  updatedAt         DateTime     @updatedAt
+
+  @@unique([shelterId, resourceType])
+}
+
+model Checkin {
+  id             String        @id @default(uuid())
+  shelterId      String
+  shelter        Shelter       @relation(fields: [shelterId], references: [id])
+  personName     String
+  familySize     Int           @default(1)
+  
+  // Medical Flags
+  medicalFlag    Boolean       @default(false)
+  elderlyCount   Int           @default(0)
+  pregnantFlag   Boolean       @default(false)
+  disabledFlag   Boolean       @default(false)
+  childrenCount  Int           @default(0)
+  emergencyNotes String?
+
+  status         CheckinStatus @default(CONFIRMED)
+  checkedInAt    DateTime      @default(now())
+  checkedOutAt   DateTime?
+}
+
+model Transfer {
+  id            String         @id @default(uuid())
+  fromShelterId String
+  fromShelter   Shelter        @relation("TransferFrom", fields: [fromShelterId], references: [id])
+  toShelterId   String
+  toShelter     Shelter        @relation("TransferTo", fields: [toShelterId], references: [id])
+  resourceType  ResourceType
+  quantity      Int
+  status        TransferStatus @default(PENDING)
+  requestedById String
+  requestedBy   User           @relation("Requester", fields: [requestedById], references: [id])
+  approvedById  String?
+  approvedBy    User?          @relation("Approver", fields: [approvedById], references: [id])
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model AlertLog {
+  id           String      @id @default(uuid())
+  shelterId    String
+  shelter      Shelter     @relation(fields: [shelterId], references: [id])
+  alertType    AlertType
+  status       AlertStatus @default(ACTIVE)
+  message      String?
+  triggeredAt  DateTime    @default(now())
+  notifiedVia  String?
+  acknowledged Boolean     @default(false)
+}
+
+model VolunteerShift {
+  id            String    @id @default(uuid())
+  shelterId     String
+  shelter       Shelter   @relation(fields: [shelterId], references: [id])
+  startTime     DateTime
+  endTime       DateTime
+  requiredCount Int
+  assignments   VolunteerAssignment[]
+  createdAt     DateTime  @default(now())
+}
+
+model VolunteerAssignment {
+  id          String         @id @default(uuid())
+  shiftId     String
+  shift       VolunteerShift @relation(fields: [shiftId], references: [id])
+  volunteerId String
+  volunteer   User           @relation(fields: [volunteerId], references: [id])
+  createdAt   DateTime       @default(now())
+  
+  @@unique([shiftId, volunteerId])
+}
+
+model Donation {
+  id           String       @id @default(uuid())
+  shelterId    String
+  shelter      Shelter      @relation(fields: [shelterId], references: [id])
+  donorName    String
+  resourceType ResourceType
+  quantity     Int
+  unit         String
+  receivedDate DateTime     @default(now())
+  notes        String?
+  receiptRef   String?
+  createdAt    DateTime     @default(now())
+}
+
+model ReunificationCase {
+  id                String              @id @default(uuid())
+  missingPersonName String
+  age               Int?
+  gender            String?
+  lastKnownLocation String?
+  contactPerson     String
+  contactInfo       String
+  description       String?
+  status            ReunificationStatus @default(MISSING)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String
+  metadata  String?  // JSON string
+  timestamp DateTime @default(now())
+}
