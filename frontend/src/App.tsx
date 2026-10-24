@@ -18,6 +18,10 @@ import { AdminShelterDetailPage } from './pages/admin/AdminShelterDetailPage';
 import { AdminOccupancyPage } from './pages/admin/AdminOccupancyPage';
 import { AdminResourcesPage } from './pages/admin/AdminResourcesPage';
 
+import { AdminTransfersPage } from './pages/admin/AdminTransfersPage';
+import { AdminAlertsPage } from './pages/admin/AdminAlertsPage';
+import { CoordinatorTransfersPage } from './pages/coordinator/CoordinatorTransfersPage';
+import { CoordinatorAlertsPage } from './pages/coordinator/CoordinatorAlertsPage';
 import { CoordinatorOverviewPage } from './pages/coordinator/CoordinatorOverviewPage';
 import { CoordinatorOccupantsPage } from './pages/coordinator/CoordinatorOccupantsPage';
 import { CoordinatorResourcesPage } from './pages/coordinator/CoordinatorResourcesPage';
@@ -47,6 +51,8 @@ function App() {
                 <Route path="shelters/:id" element={<AdminShelterDetailPage />} />
                 <Route path="occupancy" element={<AdminOccupancyPage />} />
                 <Route path="resources" element={<AdminResourcesPage />} />
+                <Route path="transfers" element={<AdminTransfersPage />} />
+                <Route path="alerts" element={<AdminAlertsPage />} />
               </Route>
             </Route>
 
@@ -55,6 +61,8 @@ function App() {
                 <Route index element={<CoordinatorOverviewPage />} />
                 <Route path="occupants" element={<CoordinatorOccupantsPage />} />
                 <Route path="resources" element={<CoordinatorResourcesPage />} />
+                <Route path="transfers" element={<CoordinatorTransfersPage />} />
+                <Route path="alerts" element={<CoordinatorAlertsPage />} />
                 <Route path="shelter" element={<CoordinatorShelterPage />} />
               </Route>
             </Route>

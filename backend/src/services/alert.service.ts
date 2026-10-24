@@ -17,8 +17,8 @@ interface Condition {
   resourceType?: ResourceType;
 }
 
-/** Alert types owned by evaluateShelter. TRANSFER_REQUIRED is evaluated separately (Phase B). */
-const ENGINE_TYPES: AlertType[] = ['OVERCROWDING', 'FULL_SHELTER', 'LOW_STOCK', 'CRITICAL_MEDICAL_NEED'];
+/** Alert types owned by evaluateShelter (the only alert path). */
+const ENGINE_TYPES: AlertType[] = ['OVERCROWDING', 'FULL_SHELTER', 'LOW_STOCK', 'CRITICAL_MEDICAL_NEED', 'TRANSFER_REQUIRED'];
 const OPEN_STATUSES: AlertStatus[] = ['ACTIVE', 'ACKNOWLEDGED'];
 
 export class AlertService {
@@ -77,6 +77,34 @@ export class AlertService {
           resourceType: r.resourceType,
           message: `${r.resourceType} is ${st.toLowerCase()} at ${shelter.name}: ${r.quantity} ${r.unit} left (threshold ${r.lowStockThreshold}).`,
         });
+
+        // TRANSFER_REQUIRED: this resource is low and another active shelter holds a clear surplus.
+        // Skipped when a transfer of the same resource is already on its way here.
+        const incoming = await tx.transfer.count({
+          where: { toShelterId: shelterId, resourceType: r.resourceType, status: { in: ['PENDING', 'APPROVED', 'IN_TRANSIT'] } },
+        });
+        if (incoming === 0) {
+          const donors = await tx.resource.findMany({
+            where: {
+              resourceType: r.resourceType,
+              isActive: true,
+              shelterId: { not: shelterId },
+              shelter: { status: { in: ['ACTIVE', 'FULL'] } },
+            },
+            include: { shelter: { select: { name: true } } },
+          });
+          const best = donors
+            .filter((d) => d.quantity >= d.lowStockThreshold * settings.transferSurplusMultiplier)
+            .sort((a, b) => b.quantity - a.quantity)[0];
+          if (best) {
+            conditions.set(`TRANSFER_REQUIRED:${shelterId}:${r.resourceType}`, {
+              type: 'TRANSFER_REQUIRED',
+              severity: st === 'LOW' ? 'INFO' : 'WARNING',
+              resourceType: r.resourceType,
+              message: `${shelter.name} needs ${r.resourceType.toLowerCase()}; ${best.shelter.name} has a surplus (${best.quantity} ${best.unit}) and could supply it.`,
+            });
+          }
+        }
       }
 
       const occupants = await tx.checkin.findMany({
@@ -159,6 +187,52 @@ export class AlertService {
       resolved += r.resolved;
     }
     return { scanned: shelters.length, created, resolved };
+  }
+
+  /**
+   * Scoped listing. Anonymous: only active FULL / OVERCROWDING notices, no internal detail.
+   * Coordinator: own shelters. Admin: everything.
+   */
+  static async list(user: AuthUser | undefined, f: { status?: AlertStatus; type?: AlertType; shelterId?: string }) {
+    const where: Prisma.AlertLogWhereInput = {};
+    if (f.type) where.alertType = f.type;
+    if (f.shelterId) where.shelterId = f.shelterId;
+
+    if (!user || (user.role !== 'ADMIN' && user.role !== 'COORDINATOR')) {
+      where.status = 'ACTIVE';
+      where.alertType = f.type && ['FULL_SHELTER', 'OVERCROWDING'].includes(f.type) ? f.type : { in: ['FULL_SHELTER', 'OVERCROWDING'] };
+      const rows = await prisma.alertLog.findMany({
+        where,
+        include: { shelter: { select: { id: true, name: true } } },
+        orderBy: { triggeredAt: 'desc' },
+        take: 100,
+      });
+      return rows.map((a) => ({ id: a.id, alertType: a.alertType, severity: a.severity, status: a.status, triggeredAt: a.triggeredAt, shelter: a.shelter }));
+    }
+
+    if (f.status) where.status = f.status;
+    if (user.role === 'COORDINATOR') {
+      const mine = await prisma.shelter.findMany({ where: { coordinatorId: user.id }, select: { id: true } });
+      const ids = mine.map((m) => m.id);
+      if (f.shelterId && !ids.includes(f.shelterId)) throw new HttpError(403, 'Forbidden: You do not manage this shelter');
+      where.shelterId = f.shelterId ?? { in: ids };
+    }
+    return prisma.alertLog.findMany({
+      where,
+      include: {
+        shelter: { select: { id: true, name: true } },
+        acknowledgedBy: { select: { id: true, name: true } },
+        resolvedBy: { select: { id: true, name: true } },
+      },
+      orderBy: [{ triggeredAt: 'desc' }],
+      take: 300,
+    });
+  }
+
+  static async runCheckAudited(user: AuthUser) {
+    const result = await AlertService.runGlobalCheck();
+    await auditLog(prisma, { userId: user.id, action: 'ALERT_RUN_CHECK', entity: 'AlertLog', entityId: 'global', metadata: result });
+    return result;
   }
 
   static async acknowledgeAlert(alertId: string, user?: AuthUser) {

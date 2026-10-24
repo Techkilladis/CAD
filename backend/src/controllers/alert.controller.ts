@@ -2,9 +2,14 @@ import { Response } from 'express';
 import { AlertService } from '../services/alert.service';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { asyncHandler } from '../utils/asyncHandler';
+import { listAlertsQuery } from '../schemas/alert.schemas';
 
-export const runCheck = asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
-  res.json(await AlertService.runGlobalCheck());
+export const listAlerts = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  res.json(await AlertService.list(req.user, listAlertsQuery.parse(req.query)));
+});
+
+export const runCheck = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  res.json(await AlertService.runCheckAudited(req.user!));
 });
 
 export const acknowledgeAlert = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {

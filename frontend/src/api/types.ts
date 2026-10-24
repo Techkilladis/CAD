@@ -301,3 +301,66 @@ export interface PublicStats {
   sheltersWithSpace: number;
   asOf: string;
 }
+
+// ---- Phase B: transfers & alerts ----
+export interface TransferActions {
+  approve: boolean;
+  reject: boolean;
+  transit: boolean;
+  receive: boolean;
+  cancel: boolean;
+}
+
+export interface Transfer {
+  id: string;
+  fromShelterId: string;
+  toShelterId: string;
+  fromShelter: { id: string; name: string };
+  toShelter: { id: string; name: string };
+  resourceType: ResourceType;
+  quantity: number;
+  status: TransferStatus;
+  reason: string | null;
+  rejectionReason: string | null;
+  requestedById: string;
+  requestedBy: { id: string; name: string; role: Role };
+  approvedBy: { id: string; name: string } | null;
+  receivedBy: { id: string; name: string } | null;
+  cancelledBy: { id: string; name: string } | null;
+  createdAt: string;
+  approvedAt: string | null;
+  shippedAt: string | null;
+  receivedAt: string | null;
+  cancelledAt: string | null;
+  actions: TransferActions;
+}
+
+export interface TransferInput {
+  fromShelterId: string;
+  toShelterId: string;
+  resourceType: ResourceType;
+  quantity: number;
+  reason?: string | null;
+}
+
+export interface Alert {
+  id: string;
+  shelterId: string;
+  alertType: AlertType;
+  severity: AlertSeverity;
+  status: AlertStatus;
+  message: string | null;
+  resourceType: ResourceType | null;
+  triggeredAt: string;
+  acknowledgedAt: string | null;
+  resolvedAt: string | null;
+  shelter: { id: string; name: string };
+  acknowledgedBy: { id: string; name: string } | null;
+  resolvedBy: { id: string; name: string } | null;
+}
+
+export interface AlertCheckResult {
+  scanned: number;
+  created: number;
+  resolved: number;
+}

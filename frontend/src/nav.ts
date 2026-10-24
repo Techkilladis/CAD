@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { LayoutDashboard, Building2, Users, Boxes, Gauge, Settings, CalendarClock } from 'lucide-react';
+import { LayoutDashboard, Building2, Users, Boxes, Gauge, Settings, CalendarClock, Truck, Bell } from 'lucide-react';
 import type { Role } from './api/types';
 
 export interface NavItem {
@@ -17,11 +17,15 @@ export const NAV: Record<Role, NavItem[]> = {
     { to: '/admin/shelters', label: 'Shelters', icon: Building2 },
     { to: '/admin/occupancy', label: 'Occupancy', icon: Gauge },
     { to: '/admin/resources', label: 'Resources', icon: Boxes },
+    { to: '/admin/transfers', label: 'Transfers', icon: Truck },
+    { to: '/admin/alerts', label: 'Alerts', icon: Bell },
   ],
   COORDINATOR: [
     { to: '/coordinator', label: 'Overview', icon: LayoutDashboard, end: true },
     { to: '/coordinator/occupants', label: 'Occupants', icon: Users },
     { to: '/coordinator/resources', label: 'Resources', icon: Boxes },
+    { to: '/coordinator/transfers', label: 'Transfers', icon: Truck },
+    { to: '/coordinator/alerts', label: 'Alerts', icon: Bell },
     { to: '/coordinator/shelter', label: 'Shelter settings', icon: Settings },
   ],
   VOLUNTEER: [{ to: '/volunteer', label: 'Shifts', icon: CalendarClock, end: true }],

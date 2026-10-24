@@ -6,6 +6,7 @@ import transferRoutes from './routes/transfer.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import authRoutes from './routes/auth.routes';
 import { errorHandler } from './middleware/error.middleware';
+import { startAlertScheduler } from './integrations/alertScheduler';
 
 dotenv.config();
 
@@ -38,6 +39,8 @@ app.use(errorHandler);
 if (require.main === module) {
   app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
+    const interval = Number(process.env.ALERT_SCAN_INTERVAL_MS);
+    if (startAlertScheduler({ intervalMs: interval })) console.log(`Alert scheduler started (every ${interval} ms)`);
   });
 }
 
