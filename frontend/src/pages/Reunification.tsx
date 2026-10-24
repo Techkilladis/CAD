@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { reportMissingPerson } from '../api/client';
+import { reportMissingPerson } from '../api/legacy';
 import { Users, AlertCircle, CheckCircle, Search } from 'lucide-react';
 
 export const Reunification = () => {

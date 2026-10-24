@@ -7,7 +7,7 @@
 | Phase | Scope | Status | Notes / deviations / limitations |
 |---|---|---|---|
 | 0 | Plan in repo, CLAUDE.md, git init, Postgres + `safehaven_test` DB | done | `backend/.env.test` points at `safehaven_test` (gitignored). psql: `C:\Program Files\PostgreSQL\18\bin\psql.exe`. Dev DB creds in `backend/.env`. |
-| A | Schema + migration, infra (errors/validation/access/audit), shelters, check-in/out/register, resources + ledger, UI kit, layouts, nav, admin shelters/occupancy/resources, coordinator overview/occupants/resources, public finder/detail/register | not started | |
+| A | Schema + migration, infra (errors/validation/access/audit), shelters, check-in/out/register, resources + ledger, UI kit, layouts, nav, admin shelters/occupancy/resources, coordinator overview/occupants/resources, public finder/detail/register | done | Backend: 47 jest tests pass (original 12 untouched). Frontend: tsc + build clean, flows verified in browser (finder, coordinator confirm, admin resources). Seed rewritten early (Chennai, all entities, alerts via real engine) - Phase F only needs verification. Legacy volunteer/reunification pages still use `api/legacy.ts` + `alert()` until phases C/D. Frontend `npm run test` (vitest) arrives in phase E. Translations editor UI arrives in D (API + public switcher already work). |
 | B | Transfer workflow, alert engine + scheduler + run-check, admin/coordinator transfers & alerts, admin overview | not started | |
 | C | Volunteers (all roles), medical priority views, donations | not started | |
 | D | Reunification (public + staff), translations + language switcher, emergency page | not started | |

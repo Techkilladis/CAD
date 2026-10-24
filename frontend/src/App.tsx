@@ -1,46 +1,75 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { Navbar } from './components/Navbar';
-import { LandingPage } from './pages/LandingPage';
-import { ShelterFinder } from './pages/ShelterFinder';
-import { CoordinatorDashboard } from './pages/CoordinatorDashboard';
-import { AdminDashboard } from './pages/AdminDashboard';
-import { VolunteerDashboard } from './pages/VolunteerDashboard';
-import { Reunification } from './pages/Reunification';
-import { Login } from './pages/Login';
-import { ProtectedRoute } from './components/ProtectedRoute';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './components/ui';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { PublicLayout } from './layouts/PublicLayout';
+import { ConsoleLayout } from './layouts/ConsoleLayout';
+
+import { HomePage } from './pages/public/HomePage';
+import { ShelterFinderPage } from './pages/public/ShelterFinderPage';
+import { ShelterDetailPage } from './pages/public/ShelterDetailPage';
+import { RegisterPage } from './pages/public/RegisterPage';
+import { LoginPage } from './pages/public/LoginPage';
+import { Reunification } from './pages/Reunification';
+
+import { AdminOverviewPage } from './pages/admin/AdminOverviewPage';
+import { AdminSheltersPage } from './pages/admin/AdminSheltersPage';
+import { AdminShelterDetailPage } from './pages/admin/AdminShelterDetailPage';
+import { AdminOccupancyPage } from './pages/admin/AdminOccupancyPage';
+import { AdminResourcesPage } from './pages/admin/AdminResourcesPage';
+
+import { CoordinatorOverviewPage } from './pages/coordinator/CoordinatorOverviewPage';
+import { CoordinatorOccupantsPage } from './pages/coordinator/CoordinatorOccupantsPage';
+import { CoordinatorResourcesPage } from './pages/coordinator/CoordinatorResourcesPage';
+import { CoordinatorShelterPage } from './pages/coordinator/CoordinatorShelterPage';
+
+import { VolunteerDashboard } from './pages/VolunteerDashboard';
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
-          <Navbar />
+    <ToastProvider>
+      <AuthProvider>
+        <BrowserRouter>
           <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/shelters" element={<ShelterFinder />} />
-            <Route path="/reunification" element={<Reunification />} />
-            <Route path="/login" element={<Login />} />
-
-            {/* Protected Routes */}
-            <Route element={<ProtectedRoute allowedRoles={['COORDINATOR']} />}>
-              <Route path="/coordinator" element={<CoordinatorDashboard />} />
+            <Route element={<PublicLayout />}>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/shelters" element={<ShelterFinderPage />} />
+              <Route path="/shelters/:id" element={<ShelterDetailPage />} />
+              <Route path="/shelters/:id/register" element={<RegisterPage />} />
+              <Route path="/reunification" element={<Reunification />} />
+              <Route path="/login" element={<LoginPage />} />
             </Route>
 
             <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
-              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin" element={<ConsoleLayout />}>
+                <Route index element={<AdminOverviewPage />} />
+                <Route path="shelters" element={<AdminSheltersPage />} />
+                <Route path="shelters/:id" element={<AdminShelterDetailPage />} />
+                <Route path="occupancy" element={<AdminOccupancyPage />} />
+                <Route path="resources" element={<AdminResourcesPage />} />
+              </Route>
+            </Route>
+
+            <Route element={<ProtectedRoute allowedRoles={['COORDINATOR']} />}>
+              <Route path="/coordinator" element={<ConsoleLayout />}>
+                <Route index element={<CoordinatorOverviewPage />} />
+                <Route path="occupants" element={<CoordinatorOccupantsPage />} />
+                <Route path="resources" element={<CoordinatorResourcesPage />} />
+                <Route path="shelter" element={<CoordinatorShelterPage />} />
+              </Route>
             </Route>
 
             <Route element={<ProtectedRoute allowedRoles={['VOLUNTEER']} />}>
-              <Route path="/volunteer" element={<VolunteerDashboard />} />
+              <Route path="/volunteer" element={<ConsoleLayout />}>
+                <Route index element={<VolunteerDashboard />} />
+              </Route>
             </Route>
-            
-            {/* Catch-all or 404 could go here */}
+
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </div>
-      </BrowserRouter>
-    </AuthProvider>
+        </BrowserRouter>
+      </AuthProvider>
+    </ToastProvider>
   );
 }
 

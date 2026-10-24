@@ -1,62 +1,106 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { getMe } from '../api/auth';
+import type { DemoUser, Me, ManagedShelterRef } from '../api/types';
 
-
-export type Role = 'COORDINATOR' | 'ADMIN' | 'VOLUNTEER';
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: Role;
-}
+export type { Role } from '../api/types';
 
 interface AuthContextType {
-  user: User | null;
-  login: (user: User) => void;
+  user: Me | null;
+  /** True while the stored session is being verified against /auth/me. */
+  loading: boolean;
+  login: (u: Pick<DemoUser, 'id'>) => Promise<Me>;
   logout: () => void;
+  refresh: () => Promise<void>;
+  /** Coordinators / admins: shelters they manage and the one currently in focus. */
+  selectedShelterId: string | null;
+  selectedShelter: ManagedShelterRef | null;
+  setSelectedShelterId: (id: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const SHELTER_KEY = 'selectedShelterId';
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+const safeGet = (k: string) => {
+  try {
+    return localStorage.getItem(k);
+  } catch {
+    return null;
+  }
+};
+const safeSet = (k: string, v: string | null) => {
+  try {
+    if (v === null) localStorage.removeItem(k);
+    else localStorage.setItem(k, v);
+  } catch {
+    /* storage unavailable */
+  }
+};
 
-  useEffect(() => {
-    // Rehydrate user from localStorage
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (e) {
-        localStorage.removeItem('user');
-        localStorage.removeItem('userId');
-      }
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<Me | null>(null);
+  const [loading, setLoading] = useState<boolean>(() => !!safeGet('userId'));
+  const [shelterPick, setShelterPick] = useState<string | null>(() => safeGet(SHELTER_KEY));
+
+  const refresh = useCallback(async () => {
+    if (!safeGet('userId')) {
+      setUser(null);
+      return;
+    }
+    try {
+      setUser(await getMe());
+    } catch {
+      // Stored user no longer valid (deleted/deactivated): drop the session.
+      safeSet('userId', null);
+      setUser(null);
     }
   }, []);
 
-  const login = (userData: User) => {
-    setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
-    localStorage.setItem('userId', userData.id);
-  };
+  useEffect(() => {
+    void refresh().finally(() => setLoading(false));
+  }, [refresh]);
 
-  const logout = () => {
+  const login = useCallback(async (u: Pick<DemoUser, 'id'>) => {
+    safeSet('userId', u.id);
+    const me = await getMe().catch((e) => {
+      safeSet('userId', null);
+      throw e;
+    });
+    setUser(me);
+    return me;
+  }, []);
+
+  const logout = useCallback(() => {
+    safeSet('userId', null);
+    safeSet(SHELTER_KEY, null);
+    setShelterPick(null);
     setUser(null);
-    localStorage.removeItem('user');
-    localStorage.removeItem('userId');
-  };
+  }, []);
 
-  return (
-    <AuthContext.Provider value={{ user, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
+  const setSelectedShelterId = useCallback((id: string) => {
+    setShelterPick(id);
+    safeSet(SHELTER_KEY, id);
+  }, []);
+
+  const value = useMemo<AuthContextType>(() => {
+    const shelters = user?.managedShelters ?? [];
+    const selectedShelter = shelters.find((s) => s.id === shelterPick) ?? shelters[0] ?? null;
+    return {
+      user,
+      loading,
+      login,
+      logout,
+      refresh,
+      selectedShelterId: selectedShelter?.id ?? null,
+      selectedShelter,
+      setSelectedShelterId,
+    };
+  }, [user, loading, login, logout, refresh, shelterPick, setSelectedShelterId]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within an AuthProvider');
+  return ctx;
 };

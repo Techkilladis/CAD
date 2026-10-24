@@ -1,132 +1,64 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response } from 'express';
 import { ShelterService } from '../services/shelter.service';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
-import prisma from '../config/prisma';
+import { asyncHandler } from '../utils/asyncHandler';
+import {
+  listSheltersQuery,
+  nearestQuery,
+  publicDetailQuery,
+  createShelterBody,
+  updateShelterBody,
+  statusBody,
+  localeParam,
+  translationBody,
+} from '../schemas/shelter.schemas';
 
-export const getShelters = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const shelters = await ShelterService.getAllShelters();
-    res.json(shelters);
-  } catch (error) {
-    next(error);
-  }
-};
+export const getShelters = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  res.json(await ShelterService.listPublic(listSheltersQuery.parse(req.query)));
+});
 
-export const getNearestShelters = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { latitude, longitude } = req.query;
-    if (!latitude || !longitude) {
-      return res.status(400).json({ error: 'Latitude and longitude are required' });
-    }
-    const shelters = await ShelterService.getNearestShelters(parseFloat(latitude as string), parseFloat(longitude as string));
-    res.json(shelters);
-  } catch (error) {
-    next(error);
-  }
-};
+export const getNearestShelters = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  res.json(await ShelterService.nearest(nearestQuery.parse(req.query)));
+});
 
-export const getShelterById = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const shelter = await ShelterService.getShelterById(req.params.id);
-    if (!shelter) return res.status(404).json({ error: 'Shelter not found' });
-    res.json(shelter);
-  } catch (error) {
-    next(error);
-  }
-};
+export const getPublicStats = asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
+  res.json(await ShelterService.publicStats());
+});
 
-export const createShelter = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  try {
-    const shelter = await ShelterService.createShelter(req.body);
-    res.status(201).json(shelter);
-  } catch (error) {
-    next(error);
-  }
-};
+export const getManagedShelters = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  res.json(await ShelterService.listManaged(req.user!));
+});
 
-const verifyShelterCoordinator = async (req: AuthenticatedRequest, shelterId: string) => {
-  if (req.user?.role === 'ADMIN') return null; // Admin can do anything
-  const shelter = await prisma.shelter.findUnique({ where: { id: shelterId } });
-  if (!shelter) return { status: 404, message: 'Shelter not found' };
-  if (shelter.coordinatorId !== req.user?.id) return { status: 403, message: 'Forbidden: You do not manage this shelter' };
-  return null;
-};
+export const getShelterById = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const q = publicDetailQuery.parse(req.query);
+  res.json(await ShelterService.getPublic(req.params.id, q.lang, q));
+});
 
-export const updateShelter = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  try {
-    const authErr = await verifyShelterCoordinator(req, req.params.id);
-    if (authErr) return res.status(authErr.status).json({ error: authErr.message });
+export const getStaffDetail = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  res.json(await ShelterService.getStaffDetail(req.user!, req.params.id));
+});
 
-    const shelter = await ShelterService.updateShelter(req.params.id, req.body);
-    res.json(shelter);
-  } catch (error) {
-    next(error);
-  }
-};
+export const getOverview = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  res.json(await ShelterService.overview(req.user!, req.params.id));
+});
 
-export const register = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const result = await ShelterService.register(req.params.id, req.body);
-    res.status(201).json(result);
-  } catch (error) {
-    next(error);
-  }
-};
+export const createShelter = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const body = createShelterBody.parse(req.body);
+  res.status(201).json(await ShelterService.create(req.user!, body));
+});
 
-export const confirmCheckin = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  try {
-    const authErr = await verifyShelterCoordinator(req, req.params.id);
-    if (authErr) return res.status(authErr.status).json({ error: authErr.message });
+export const updateShelter = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const body = updateShelterBody.parse(req.body);
+  res.json(await ShelterService.update(req.user!, req.params.id, body));
+});
 
-    const result = await ShelterService.confirmCheckin(req.params.id, req.params.checkinId);
-    res.json(result);
-  } catch (error) {
-    next(error);
-  }
-};
+export const setShelterStatus = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const body = statusBody.parse(req.body);
+  res.json(await ShelterService.setStatus(req.user!, req.params.id, body.status, body.reason));
+});
 
-export const checkIn = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  try {
-    const authErr = await verifyShelterCoordinator(req, req.params.id);
-    if (authErr) return res.status(authErr.status).json({ error: authErr.message });
-
-    const result = await ShelterService.checkIn(req.params.id, req.body);
-    res.status(201).json(result);
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const checkOut = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  try {
-    const authErr = await verifyShelterCoordinator(req, req.params.id);
-    if (authErr) return res.status(authErr.status).json({ error: authErr.message });
-
-    const { checkinId, familySize } = req.body;
-    const result = await ShelterService.checkOut(req.params.id, checkinId, familySize);
-    res.json(result);
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const getResources = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const resources = await ShelterService.getResources(req.params.id);
-    res.json(resources);
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const updateResource = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  try {
-    const authErr = await verifyShelterCoordinator(req, req.params.id);
-    if (authErr) return res.status(authErr.status).json({ error: authErr.message });
-
-    const result = await ShelterService.updateResource(req.params.id, req.params.resourceId, req.body.quantity);
-    res.json(result);
-  } catch (error) {
-    next(error);
-  }
-};
+export const upsertTranslation = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const params = localeParam.parse(req.params);
+  const body = translationBody.parse(req.body);
+  res.json(await ShelterService.upsertTranslation(req.user!, params.id, params.locale, body));
+});

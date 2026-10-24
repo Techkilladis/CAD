@@ -1,0 +1,53 @@
+- generic [ref=f2e2]:
+  - generic [ref=f2e3]:
+    - complementary [ref=f2e4]:
+      - generic [ref=f2e5]:
+        - link "SafeHaven" [ref=f2e6] [cursor=pointer]:
+          - /url: /
+        - generic [ref=f2e12]:
+          - generic [ref=f2e13]: Working shelter
+          - combobox "Working shelter" [ref=f2e14]:
+            - option "Tambaram Relief School" [selected]
+            - option "Velachery Community Hall"
+          - generic [ref=f2e15]: Active
+        - navigation "Console" [ref=f2e17]:
+          - link "Overview" [ref=f2e18] [cursor=pointer]:
+            - /url: /coordinator
+          - link "Occupants" [ref=f2e24] [cursor=pointer]:
+            - /url: /coordinator/occupants
+          - link "Resources" [ref=f2e30] [cursor=pointer]:
+            - /url: /coordinator/resources
+          - link "Shelter settings" [ref=f2e41] [cursor=pointer]:
+            - /url: /coordinator/shelter
+          - link "Public site" [ref=f2e45] [cursor=pointer]:
+            - /url: /shelters
+        - generic [ref=f2e51]:
+          - generic [ref=f2e57]:
+            - paragraph [ref=f2e58]: Priya Venkatesh
+            - paragraph [ref=f2e59]: Coordinator
+          - button "Log out" [ref=f2e60]
+    - main [ref=f2e64]:
+      - generic [ref=f2e66]:
+        - generic [ref=f2e68]:
+          - heading "Occupants" [level=1] [ref=f2e69]
+          - generic [ref=f2e70]: Tambaram Relief School
+        - generic [ref=f2e75]:
+          - generic [ref=f2e76]:
+            - generic [ref=f2e77]:
+              - generic [ref=f2e78]:
+                - generic [ref=f2e79]: 60 / 60 beds
+                - generic [ref=f2e80]: 100%
+              - progressbar [ref=f2e81]
+            - generic [ref=f2e83]:
+              - generic [ref=f2e84]: Current status as of 15:28:05
+              - button "Refresh" [ref=f2e85]
+          - tablist [ref=f2e92]:
+            - tab "Active occupants15" [ref=f2e134]
+            - tab "New check-in" [ref=f2e94]
+            - tab "Pending registrations0" [selected] [ref=f2e135]
+          - generic [ref=f2e136]:
+            - heading "No pending registrations" [level=3] [ref=f2e141]
+            - paragraph [ref=f2e142]: Families who register online appear here until you confirm them at the desk.
+  - status [ref=f2e144]:
+    - paragraph [ref=f2e148]: Nazeer Family confirmed — 5 bed(s) allocated
+    - button "Dismiss" [ref=f2e149]

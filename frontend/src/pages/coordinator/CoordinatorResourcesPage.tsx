@@ -1,0 +1,15 @@
+import { useAuth } from '../../context/AuthContext';
+import { EmptyState } from '../../components/ui';
+import { PageHeader } from '../../components/PageHeader';
+import { ResourcesPanel } from '../../features/ResourcesPanel';
+
+export function CoordinatorResourcesPage() {
+  const { selectedShelterId, selectedShelter } = useAuth();
+  if (!selectedShelterId) return <EmptyState title="No shelter assigned" message="Ask an administrator to assign you a shelter." />;
+  return (
+    <div>
+      <PageHeader title="Resources" subtitle={`${selectedShelter?.name} — update stock, thresholds and review movement history`} />
+      <ResourcesPanel key={selectedShelterId} shelterId={selectedShelterId} />
+    </div>
+  );
+}

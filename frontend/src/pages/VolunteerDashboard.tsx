@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getShifts, signUpForShift, cancelSignup } from '../api/client';
+import { getShifts, signUpForShift, cancelSignup } from '../api/legacy';
 import { Calendar, Clock, MapPin, Check, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 

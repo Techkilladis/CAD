@@ -54,6 +54,7 @@ enum CheckinStatus {
   PENDING
   CONFIRMED
   CHECKED_OUT
+  CANCELLED
 }
 
 enum ReunificationStatus {
@@ -63,45 +64,121 @@ enum ReunificationStatus {
   CLOSED
 }
 
+enum MedicalPriority {
+  NONE
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum CheckinSource {
+  COORDINATOR
+  PUBLIC_REGISTRATION
+  OFFLINE_SYNC
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum StockMovementType {
+  SET
+  ADJUSTMENT
+  TRANSFER_OUT
+  TRANSFER_IN
+  TRANSFER_RETURN
+  DONATION
+}
+
+enum DonationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum ShiftStatus {
+  OPEN
+  CANCELLED
+}
+
 model User {
-  id                 String     @id @default(uuid())
-  name               String
-  email              String     @unique
-  phone              String?
-  role               Role       @default(VOLUNTEER)
-  cognitoSub         String?
-  createdAt          DateTime   @default(now())
-  shelters           Shelter[]  @relation("Coordinator")
-  requestedTransfers Transfer[] @relation("Requester")
-  approvedTransfers  Transfer[] @relation("Approver")
+  id         String   @id @default(uuid())
+  name       String
+  email      String   @unique
+  phone      String?
+  role       Role     @default(VOLUNTEER)
+  cognitoSub String?
+  isActive   Boolean  @default(true)
+  skills     String?
+  languages  String?
+  createdAt  DateTime @default(now())
+
+  shelters           Shelter[]             @relation("Coordinator")
+  requestedTransfers Transfer[]            @relation("Requester")
+  approvedTransfers  Transfer[]            @relation("Approver")
+  receivedTransfers  Transfer[]            @relation("TransferReceiver")
+  cancelledTransfers Transfer[]            @relation("TransferCanceller")
   shifts             VolunteerAssignment[]
+  createdShifts      VolunteerShift[]      @relation("ShiftCreator")
   auditLogs          AuditLog[]
+  ackedAlerts        AlertLog[]            @relation("AlertAcker")
+  resolvedAlerts     AlertLog[]            @relation("AlertResolver")
+  checkinsIn         Checkin[]             @relation("CheckedInBy")
+  checkinsOut        Checkin[]             @relation("CheckedOutBy")
+  recordedDonations  Donation[]            @relation("DonationRecorder")
+  acceptedDonations  Donation[]            @relation("DonationAcceptor")
+  reportedCases      ReunificationCase[]   @relation("CaseReporter")
+  stockMovements     StockMovement[]
+  settingsUpdates    SystemSetting[]
 }
 
 model Shelter {
-  id                 String          @id @default(uuid())
-  name               String
-  address            String
-  latitude           Float
-  longitude          Float
-  capacityTotal      Int
-  capacityOccupied   Int             @default(0)
-  coordinatorId      String?
-  coordinator        User?           @relation("Coordinator", fields: [coordinatorId], references: [id])
-  status             ShelterStatus   @default(ACTIVE)
-  description        String?
-  contactInfo        String?
-  supportedLanguages String?         @default("[]") // JSON string for languages
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  id               String        @id @default(uuid())
+  name             String
+  address          String
+  latitude         Float
+  longitude        Float
+  capacityTotal    Int
+  capacityOccupied Int           @default(0)
+  coordinatorId    String?
+  coordinator      User?         @relation("Coordinator", fields: [coordinatorId], references: [id], onDelete: SetNull)
+  status           ShelterStatus @default(ACTIVE)
+  description      String?
+  contactInfo      String?
+  contactPhone     String?
+  contactEmail     String?
+  medicalSupport   Boolean       @default(false)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
-  resources          Resource[]
-  checkins           Checkin[]
-  transfersFrom      Transfer[]      @relation("TransferFrom")
-  transfersTo        Transfer[]      @relation("TransferTo")
-  alerts             AlertLog[]
-  shifts             VolunteerShift[]
-  donations          Donation[]
+  resources      Resource[]
+  checkins       Checkin[]
+  transfersFrom  Transfer[]           @relation("TransferFrom")
+  transfersTo    Transfer[]           @relation("TransferTo")
+  alerts         AlertLog[]
+  shifts         VolunteerShift[]
+  donations      Donation[]
+  translations   ShelterTranslation[]
+  stockMovements StockMovement[]
+  lastKnownFor   ReunificationCase[]  @relation("CaseLastShelter")
+
+  @@index([status])
+  @@index([coordinatorId])
+}
+
+model ShelterTranslation {
+  id           String  @id @default(uuid())
+  shelterId    String
+  shelter      Shelter @relation(fields: [shelterId], references: [id], onDelete: Cascade)
+  locale       String
+  name         String?
+  description  String?
+  instructions String?
+
+  @@unique([shelterId, locale])
 }
 
 model Resource {
@@ -112,69 +189,145 @@ model Resource {
   quantity          Int
   unit              String
   lowStockThreshold Int          @default(10)
+  isActive          Boolean      @default(true)
+  createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
+  movements StockMovement[]
+
   @@unique([shelterId, resourceType])
+  @@index([shelterId])
+}
+
+model StockMovement {
+  id            String            @id @default(uuid())
+  resourceId    String
+  resource      Resource          @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  shelterId     String
+  shelter       Shelter           @relation(fields: [shelterId], references: [id], onDelete: Cascade)
+  type          StockMovementType
+  delta         Int
+  quantityAfter Int
+  note          String?
+  userId        String?
+  user          User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  referenceId   String?
+  createdAt     DateTime          @default(now())
+
+  @@index([resourceId, createdAt])
+  @@index([shelterId, createdAt])
 }
 
 model Checkin {
-  id             String        @id @default(uuid())
-  shelterId      String
-  shelter        Shelter       @relation(fields: [shelterId], references: [id])
-  personName     String
-  familySize     Int           @default(1)
-  
-  // Medical Flags
-  medicalFlag    Boolean       @default(false)
-  elderlyCount   Int           @default(0)
-  pregnantFlag   Boolean       @default(false)
-  disabledFlag   Boolean       @default(false)
-  childrenCount  Int           @default(0)
-  emergencyNotes String?
+  id         String  @id @default(uuid())
+  shelterId  String
+  shelter    Shelter @relation(fields: [shelterId], references: [id])
+  personName String
+  familySize Int     @default(1)
+  phone      String?
 
-  status         CheckinStatus @default(CONFIRMED)
-  checkedInAt    DateTime      @default(now())
-  checkedOutAt   DateTime?
+  // Medical Flags
+  medicalFlag     Boolean         @default(false)
+  criticalMedical Boolean         @default(false)
+  elderlyCount    Int             @default(0)
+  pregnantFlag    Boolean         @default(false)
+  disabledFlag    Boolean         @default(false)
+  childrenCount   Int             @default(0)
+  emergencyNotes  String?
+  medicalNotes    String?
+  priority        MedicalPriority @default(NONE)
+
+  status          CheckinStatus @default(CONFIRMED)
+  source          CheckinSource @default(COORDINATOR)
+  clientRequestId String?       @unique
+  referenceCode   String?       @unique
+  checkedInById   String?
+  checkedInBy     User?         @relation("CheckedInBy", fields: [checkedInById], references: [id], onDelete: SetNull)
+  checkedOutById  String?
+  checkedOutBy    User?         @relation("CheckedOutBy", fields: [checkedOutById], references: [id], onDelete: SetNull)
+  confirmedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  checkedInAt     DateTime      @default(now())
+  checkedOutAt    DateTime?
+
+  matchedCases ReunificationCase[] @relation("CaseMatchedCheckin")
+
+  @@index([shelterId, status])
+  @@index([priority])
 }
 
 model Transfer {
-  id            String         @id @default(uuid())
-  fromShelterId String
-  fromShelter   Shelter        @relation("TransferFrom", fields: [fromShelterId], references: [id])
-  toShelterId   String
-  toShelter     Shelter        @relation("TransferTo", fields: [toShelterId], references: [id])
-  resourceType  ResourceType
-  quantity      Int
-  status        TransferStatus @default(PENDING)
-  requestedById String
-  requestedBy   User           @relation("Requester", fields: [requestedById], references: [id])
-  approvedById  String?
-  approvedBy    User?          @relation("Approver", fields: [approvedById], references: [id])
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id              String         @id @default(uuid())
+  fromShelterId   String
+  fromShelter     Shelter        @relation("TransferFrom", fields: [fromShelterId], references: [id])
+  toShelterId     String
+  toShelter       Shelter        @relation("TransferTo", fields: [toShelterId], references: [id])
+  resourceType    ResourceType
+  quantity        Int
+  status          TransferStatus @default(PENDING)
+  reason          String?
+  rejectionReason String?
+  requestedById   String
+  requestedBy     User           @relation("Requester", fields: [requestedById], references: [id])
+  approvedById    String?
+  approvedBy      User?          @relation("Approver", fields: [approvedById], references: [id])
+  approvedAt      DateTime?
+  shippedAt       DateTime?
+  receivedAt      DateTime?
+  receivedById    String?
+  receivedBy      User?          @relation("TransferReceiver", fields: [receivedById], references: [id], onDelete: SetNull)
+  cancelledAt     DateTime?
+  cancelledById   String?
+  cancelledBy     User?          @relation("TransferCanceller", fields: [cancelledById], references: [id], onDelete: SetNull)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([status])
+  @@index([fromShelterId])
+  @@index([toShelterId])
 }
 
 model AlertLog {
-  id           String      @id @default(uuid())
-  shelterId    String
-  shelter      Shelter     @relation(fields: [shelterId], references: [id])
-  alertType    AlertType
-  status       AlertStatus @default(ACTIVE)
-  message      String?
-  triggeredAt  DateTime    @default(now())
-  notifiedVia  String?
-  acknowledged Boolean     @default(false)
+  id               String        @id @default(uuid())
+  shelterId        String
+  shelter          Shelter       @relation(fields: [shelterId], references: [id])
+  alertType        AlertType
+  severity         AlertSeverity @default(WARNING)
+  status           AlertStatus   @default(ACTIVE)
+  message          String?
+  resourceType     ResourceType?
+  dedupeKey        String        @default("")
+  triggeredAt      DateTime      @default(now())
+  notifiedVia      String?
+  acknowledged     Boolean       @default(false)
+  acknowledgedById String?
+  acknowledgedBy   User?         @relation("AlertAcker", fields: [acknowledgedById], references: [id], onDelete: SetNull)
+  acknowledgedAt   DateTime?
+  resolvedById     String?
+  resolvedBy       User?         @relation("AlertResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolvedAt       DateTime?
+
+  @@index([dedupeKey, status])
+  @@index([shelterId, status])
 }
 
 model VolunteerShift {
-  id            String    @id @default(uuid())
+  id            String                @id @default(uuid())
   shelterId     String
-  shelter       Shelter   @relation(fields: [shelterId], references: [id])
+  shelter       Shelter               @relation(fields: [shelterId], references: [id])
+  title         String                @default("Volunteer shift")
+  task          String?
+  notes         String?
   startTime     DateTime
   endTime       DateTime
   requiredCount Int
+  status        ShiftStatus           @default(OPEN)
+  createdById   String?
+  createdBy     User?                 @relation("ShiftCreator", fields: [createdById], references: [id], onDelete: SetNull)
   assignments   VolunteerAssignment[]
-  createdAt     DateTime  @default(now())
+  createdAt     DateTime              @default(now())
+
+  @@index([shelterId, startTime])
 }
 
 model VolunteerAssignment {
@@ -184,45 +337,77 @@ model VolunteerAssignment {
   volunteerId String
   volunteer   User           @relation(fields: [volunteerId], references: [id])
   createdAt   DateTime       @default(now())
-  
+
   @@unique([shiftId, volunteerId])
 }
 
 model Donation {
-  id           String       @id @default(uuid())
-  shelterId    String
-  shelter      Shelter      @relation(fields: [shelterId], references: [id])
-  donorName    String
-  resourceType ResourceType
-  quantity     Int
-  unit         String
-  receivedDate DateTime     @default(now())
-  notes        String?
-  receiptRef   String?
-  createdAt    DateTime     @default(now())
+  id               String         @id @default(uuid())
+  shelterId        String
+  shelter          Shelter        @relation(fields: [shelterId], references: [id])
+  donorName        String
+  resourceType     ResourceType
+  quantity         Int
+  unit             String
+  receivedDate     DateTime       @default(now())
+  notes            String?
+  receiptRef       String?
+  receiptUrl       String?
+  status           DonationStatus @default(ACCEPTED)
+  inventoryApplied Boolean        @default(false)
+  recordedById     String?
+  recordedBy       User?          @relation("DonationRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+  acceptedById     String?
+  acceptedBy       User?          @relation("DonationAcceptor", fields: [acceptedById], references: [id], onDelete: SetNull)
+  acceptedAt       DateTime?
+  createdAt        DateTime       @default(now())
+
+  @@index([shelterId])
+  @@index([receivedDate])
 }
 
 model ReunificationCase {
-  id                String              @id @default(uuid())
-  missingPersonName String
-  age               Int?
-  gender            String?
-  lastKnownLocation String?
-  contactPerson     String
-  contactInfo       String
-  description       String?
-  status            ReunificationStatus @default(MISSING)
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
+  id                 String              @id @default(uuid())
+  missingPersonName  String
+  age                Int?
+  gender             String?
+  lastKnownLocation  String?
+  lastKnownShelterId String?
+  lastKnownShelter   Shelter?            @relation("CaseLastShelter", fields: [lastKnownShelterId], references: [id], onDelete: SetNull)
+  contactPerson      String
+  contactInfo        String
+  description        String?
+  status             ReunificationStatus @default(MISSING)
+  reportedById       String?
+  reportedBy         User?               @relation("CaseReporter", fields: [reportedById], references: [id], onDelete: SetNull)
+  matchedCheckinId   String?
+  matchedCheckin     Checkin?            @relation("CaseMatchedCheckin", fields: [matchedCheckinId], references: [id], onDelete: SetNull)
+  staffNotes         String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@index([status])
+  @@index([missingPersonName])
 }
 
 model AuditLog {
   id        String   @id @default(uuid())
   userId    String?
-  user      User?    @relation(fields: [userId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   action    String
   entity    String
   entityId  String
-  metadata  String?  // JSON string
+  metadata  Json?
   timestamp DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([timestamp])
+}
+
+model SystemSetting {
+  key         String   @id
+  value       String
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+  updatedBy   User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)
 }
