@@ -364,3 +364,89 @@ export interface AlertCheckResult {
   created: number;
   resolved: number;
 }
+
+// ---- Phase C: volunteers, donations, medical ----
+export interface Shift {
+  id: string;
+  shelterId: string;
+  shelter: { id: string; name: string };
+  title: string;
+  task: string | null;
+  notes: string | null;
+  startTime: string;
+  endTime: string;
+  requiredCount: number;
+  status: 'OPEN' | 'CANCELLED';
+  filledCount: number;
+  openSlots: number;
+  isFull: boolean;
+  hasStarted: boolean;
+  signedUp: boolean;
+  /** Present only for staff who manage the shelter. */
+  assignments?: { id: string; volunteer: { id: string; name: string; phone: string | null; skills: string | null } }[];
+}
+
+export interface ShiftInput {
+  shelterId: string;
+  title: string;
+  task?: string | null;
+  notes?: string | null;
+  startTime: string;
+  endTime: string;
+  requiredCount: number;
+}
+
+export type DonationStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED';
+
+export interface Donation {
+  id: string;
+  shelterId: string;
+  shelter: { id: string; name: string };
+  donorName: string;
+  resourceType: ResourceType;
+  quantity: number;
+  unit: string;
+  receivedDate: string;
+  notes: string | null;
+  receiptRef: string | null;
+  receiptUrl: string | null;
+  status: DonationStatus;
+  inventoryApplied: boolean;
+  recordedBy: { id: string; name: string } | null;
+  acceptedBy: { id: string; name: string } | null;
+  acceptedAt: string | null;
+}
+
+export interface DonationInput {
+  shelterId: string;
+  donorName: string;
+  resourceType: ResourceType;
+  quantity: number;
+  unit: string;
+  receivedDate?: string;
+  notes?: string | null;
+  receiptRef?: string | null;
+  receiptFileName?: string | null;
+  applyToInventory?: boolean;
+}
+
+export interface MedicalCounts extends PriorityCounts {}
+
+export interface MedicalCase extends Checkin {
+  shelterName: string;
+}
+
+export interface MedicalSummary {
+  asOf: string;
+  totals: PriorityCounts;
+  perShelter: { id: string; name: string; medicalSupport: boolean; status: ShelterStatus; counts: PriorityCounts }[];
+  cases: MedicalCase[];
+}
+
+export interface VolunteerUser {
+  id: string;
+  name: string;
+  phone: string | null;
+  skills: string | null;
+  languages: string | null;
+}

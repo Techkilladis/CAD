@@ -17,3 +17,8 @@ export const getResourceMatrix = asyncHandler(async (req: AuthenticatedRequest, 
   const q = dashboardQuery.parse(req.query);
   res.json(await DashboardService.resources(req.user!, q.shelterId));
 });
+
+export const getMedical = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const q = dashboardQuery.parse(req.query);
+  res.json(await DashboardService.medical(req.user!, q.shelterId));
+});

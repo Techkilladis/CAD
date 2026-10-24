@@ -6,3 +6,6 @@ export const getDistrict = (shelterId?: string) =>
 
 export const getResourceMatrix = (shelterId?: string) =>
   apiClient.get<ResourceMatrix>('/dashboard/resources', { params: { shelterId } }).then((r) => r.data);
+
+export const getMedicalSummary = (shelterId?: string) =>
+  apiClient.get<import('./types').MedicalSummary>('/dashboard/medical', { params: { shelterId } }).then((r) => r.data);

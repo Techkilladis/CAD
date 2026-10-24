@@ -111,6 +111,38 @@ export class DashboardService {
     };
   }
 
+  /** District medical view: priority counts per shelter plus the case list. Staff only (scoped); volunteers get 403. */
+  static async medical(user: AuthUser, shelterId?: string) {
+    const where = scopedWhere(user, shelterId);
+    const shelters = await prisma.shelter.findMany({
+      where: { AND: [where, { status: { not: 'INACTIVE' } }] },
+      select: { id: true, name: true, medicalSupport: true, status: true },
+      orderBy: { name: 'asc' },
+    });
+    const cases = await prisma.checkin.findMany({
+      where: { shelterId: { in: shelters.map((s) => s.id) }, status: 'CONFIRMED', priority: { not: 'NONE' } },
+    });
+    const rank = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1, NONE: 0 } as const;
+    cases.sort((a, b) => rank[b.priority] - rank[a.priority] || b.checkedInAt.getTime() - a.checkedInAt.getTime());
+    const count = (rows: typeof cases) => ({
+      critical: rows.filter((c) => c.priority === 'CRITICAL').length,
+      high: rows.filter((c) => c.priority === 'HIGH').length,
+      medium: rows.filter((c) => c.priority === 'MEDIUM').length,
+      low: rows.filter((c) => c.priority === 'LOW').length,
+      pregnant: rows.filter((c) => c.pregnantFlag).length,
+      disabled: rows.filter((c) => c.disabledFlag).length,
+      elderly: rows.reduce((a, c) => a + c.elderlyCount, 0),
+      children: rows.reduce((a, c) => a + c.childrenCount, 0),
+    });
+    const nameOf = new Map(shelters.map((s) => [s.id, s.name]));
+    return {
+      asOf: new Date().toISOString(),
+      totals: count(cases),
+      perShelter: shelters.map((s) => ({ ...s, counts: count(cases.filter((c) => c.shelterId === s.id)) })),
+      cases: cases.map((c) => ({ ...c, shelterName: nameOf.get(c.shelterId) ?? '' })),
+    };
+  }
+
   static async resources(user: AuthUser, shelterId?: string) {
     const shelterWhere = scopedWhere(user, shelterId);
     const shelters = await prisma.shelter.findMany({

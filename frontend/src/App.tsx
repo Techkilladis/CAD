@@ -27,7 +27,15 @@ import { CoordinatorOccupantsPage } from './pages/coordinator/CoordinatorOccupan
 import { CoordinatorResourcesPage } from './pages/coordinator/CoordinatorResourcesPage';
 import { CoordinatorShelterPage } from './pages/coordinator/CoordinatorShelterPage';
 
-import { VolunteerDashboard } from './pages/VolunteerDashboard';
+import { AdminVolunteersPage } from './pages/admin/AdminVolunteersPage';
+import { AdminMedicalPage } from './pages/admin/AdminMedicalPage';
+import { AdminDonationsPage } from './pages/admin/AdminDonationsPage';
+import { CoordinatorVolunteersPage } from './pages/coordinator/CoordinatorVolunteersPage';
+import { CoordinatorMedicalPage } from './pages/coordinator/CoordinatorMedicalPage';
+import { CoordinatorDonationsPage } from './pages/coordinator/CoordinatorDonationsPage';
+import { VolunteerShiftsPage } from './pages/volunteer/VolunteerShiftsPage';
+import { VolunteerMyShiftsPage } from './pages/volunteer/VolunteerMyShiftsPage';
+import { VolunteerProfilePage } from './pages/volunteer/VolunteerProfilePage';
 
 function App() {
   return (
@@ -53,6 +61,9 @@ function App() {
                 <Route path="resources" element={<AdminResourcesPage />} />
                 <Route path="transfers" element={<AdminTransfersPage />} />
                 <Route path="alerts" element={<AdminAlertsPage />} />
+                <Route path="volunteers" element={<AdminVolunteersPage />} />
+                <Route path="medical" element={<AdminMedicalPage />} />
+                <Route path="donations" element={<AdminDonationsPage />} />
               </Route>
             </Route>
 
@@ -63,13 +74,18 @@ function App() {
                 <Route path="resources" element={<CoordinatorResourcesPage />} />
                 <Route path="transfers" element={<CoordinatorTransfersPage />} />
                 <Route path="alerts" element={<CoordinatorAlertsPage />} />
+                <Route path="volunteers" element={<CoordinatorVolunteersPage />} />
+                <Route path="medical" element={<CoordinatorMedicalPage />} />
+                <Route path="donations" element={<CoordinatorDonationsPage />} />
                 <Route path="shelter" element={<CoordinatorShelterPage />} />
               </Route>
             </Route>
 
             <Route element={<ProtectedRoute allowedRoles={['VOLUNTEER']} />}>
               <Route path="/volunteer" element={<ConsoleLayout />}>
-                <Route index element={<VolunteerDashboard />} />
+                <Route index element={<VolunteerShiftsPage />} />
+                <Route path="my-shifts" element={<VolunteerMyShiftsPage />} />
+                <Route path="profile" element={<VolunteerProfilePage />} />
               </Route>
             </Route>
 

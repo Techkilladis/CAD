@@ -36,6 +36,7 @@ const MAP: Record<string, [Tone, string]> = {
   // alert
   ACKNOWLEDGED: ['blue', 'Acknowledged'],
   RESOLVED: ['green', 'Resolved'],
+  ACCEPTED: ['green', 'Accepted'],
   // severity
   INFO: ['blue', 'Info'],
   WARNING: ['amber', 'Warning'],

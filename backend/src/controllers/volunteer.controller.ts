@@ -1,49 +1,30 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response } from 'express';
 import { VolunteerService } from '../services/volunteer.service';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
+import { asyncHandler } from '../utils/asyncHandler';
+import { createShiftBody, updateShiftBody, listShiftsQuery } from '../schemas/volunteer.schemas';
 
-export const createShift = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  try {
-    const data = {
-      shelterId: req.body.shelterId,
-      startTime: new Date(req.body.startTime),
-      endTime: new Date(req.body.endTime),
-      requiredCount: req.body.requiredCount
-    };
-    const shift = await VolunteerService.createShift(data);
-    res.status(201).json(shift);
-  } catch (error: any) {
-    if (error.statusCode) return res.status(error.statusCode).json({ error: error.message });
-    next(error);
-  }
-};
-
-export const getShifts = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const shelterId = req.query.shelterId as string | undefined;
-    const shifts = await VolunteerService.getShifts(shelterId);
-    res.json(shifts);
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const signUpForShift = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  try {
-    const assignment = await VolunteerService.signUpForShift(req.params.id, req.user!.id);
-    res.json(assignment);
-  } catch (error: any) {
-    if (error.statusCode) return res.status(error.statusCode).json({ error: error.message });
-    next(error);
-  }
-};
-
-export const cancelSignup = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  try {
-    await VolunteerService.cancelSignup(req.params.id, req.user!.id);
-    res.json({ success: true });
-  } catch (error: any) {
-    if (error.statusCode) return res.status(error.statusCode).json({ error: error.message });
-    next(error);
-  }
-};
+export const listVolunteers = asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
+  res.json(await VolunteerService.listVolunteers());
+});
+export const listShifts = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  res.json(await VolunteerService.listShifts(req.user!, listShiftsQuery.parse(req.query)));
+});
+export const myShifts = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  res.json(await VolunteerService.myShifts(req.user!));
+});
+export const createShift = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  res.status(201).json(await VolunteerService.createShift(req.user!, createShiftBody.parse(req.body)));
+});
+export const updateShift = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  res.json(await VolunteerService.updateShift(req.user!, req.params.shiftId, updateShiftBody.parse(req.body)));
+});
+export const signUp = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  res.status(201).json(await VolunteerService.signUp(req.user!, req.params.shiftId));
+});
+export const cancelSignup = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  res.json(await VolunteerService.cancelSignup(req.user!, req.params.shiftId));
+});
+export const removeVolunteer = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  res.json(await VolunteerService.removeVolunteer(req.user!, req.params.shiftId, req.params.volunteerId));
+});

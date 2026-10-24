@@ -19,6 +19,7 @@ app.use(express.json());
 import alertRoutes from './routes/alert.routes';
 import volunteerRoutes from './routes/volunteer.routes';
 import reunificationRoutes from './routes/reunification.routes';
+import donationRoutes from './routes/donation.routes';
 
 // Routes
 app.get('/api/health', (req, res) => {
@@ -31,6 +32,7 @@ app.use('/api/transfers', transferRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/alerts', alertRoutes);
 app.use('/api/volunteers', volunteerRoutes);
+app.use('/api/donations', donationRoutes);
 app.use('/api/reunification', reunificationRoutes);
 
 // Error handling middleware
