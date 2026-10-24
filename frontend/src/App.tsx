@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { LangProvider } from './context/LangContext';
 import { ToastProvider } from './components/ui';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { PublicLayout } from './layouts/PublicLayout';
@@ -10,7 +11,9 @@ import { ShelterFinderPage } from './pages/public/ShelterFinderPage';
 import { ShelterDetailPage } from './pages/public/ShelterDetailPage';
 import { RegisterPage } from './pages/public/RegisterPage';
 import { LoginPage } from './pages/public/LoginPage';
-import { Reunification } from './pages/Reunification';
+import { EmergencyPage } from './pages/public/EmergencyPage';
+import { AdminReunificationPage } from './pages/admin/AdminReunificationPage';
+import { CoordinatorReunificationPage } from './pages/coordinator/CoordinatorReunificationPage';
 
 import { AdminOverviewPage } from './pages/admin/AdminOverviewPage';
 import { AdminSheltersPage } from './pages/admin/AdminSheltersPage';
@@ -40,6 +43,7 @@ import { VolunteerProfilePage } from './pages/volunteer/VolunteerProfilePage';
 function App() {
   return (
     <ToastProvider>
+      <LangProvider>
       <AuthProvider>
         <BrowserRouter>
           <Routes>
@@ -48,7 +52,8 @@ function App() {
               <Route path="/shelters" element={<ShelterFinderPage />} />
               <Route path="/shelters/:id" element={<ShelterDetailPage />} />
               <Route path="/shelters/:id/register" element={<RegisterPage />} />
-              <Route path="/reunification" element={<Reunification />} />
+              <Route path="/emergency" element={<EmergencyPage />} />
+              <Route path="/reunification" element={<Navigate to="/emergency" replace />} />
               <Route path="/login" element={<LoginPage />} />
             </Route>
 
@@ -64,6 +69,7 @@ function App() {
                 <Route path="volunteers" element={<AdminVolunteersPage />} />
                 <Route path="medical" element={<AdminMedicalPage />} />
                 <Route path="donations" element={<AdminDonationsPage />} />
+                <Route path="reunification" element={<AdminReunificationPage />} />
               </Route>
             </Route>
 
@@ -77,6 +83,7 @@ function App() {
                 <Route path="volunteers" element={<CoordinatorVolunteersPage />} />
                 <Route path="medical" element={<CoordinatorMedicalPage />} />
                 <Route path="donations" element={<CoordinatorDonationsPage />} />
+                <Route path="reunification" element={<CoordinatorReunificationPage />} />
                 <Route path="shelter" element={<CoordinatorShelterPage />} />
               </Route>
             </Route>
@@ -93,6 +100,7 @@ function App() {
           </Routes>
         </BrowserRouter>
       </AuthProvider>
+      </LangProvider>
     </ToastProvider>
   );
 }

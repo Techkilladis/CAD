@@ -67,6 +67,8 @@ export interface PublicShelter {
   languages: string[];
   resources: PublicResource[];
   distance?: number;
+  /** Translation for the requested ?lang= (null when none exists: fall back to the base fields). */
+  translation?: { name: string | null; description: string | null; instructions: string | null } | null;
 }
 
 export interface ShelterTranslation {
@@ -449,4 +451,54 @@ export interface VolunteerUser {
   phone: string | null;
   skills: string | null;
   languages: string | null;
+}
+
+// ---- Phase D: reunification ----
+export type ReunificationStatus = 'MISSING' | 'POTENTIAL_MATCH' | 'REUNITED' | 'CLOSED';
+
+export interface ReportInput {
+  missingPersonName: string;
+  age?: number | null;
+  gender?: string | null;
+  lastKnownLocation?: string | null;
+  lastKnownShelterId?: string | null;
+  contactPerson: string;
+  contactInfo: string;
+  description?: string | null;
+}
+
+export interface PublicCaseHit {
+  id: string;
+  missingPersonName: string;
+  age: number | null;
+  status: ReunificationStatus;
+  lastKnownShelterName: string | null;
+}
+
+export interface CaseCandidate {
+  id: string;
+  personName: string;
+  familySize: number;
+  shelter: { id: string; name: string };
+  score: number;
+}
+
+export interface ReunificationCase {
+  id: string;
+  missingPersonName: string;
+  age: number | null;
+  gender: string | null;
+  lastKnownLocation: string | null;
+  lastKnownShelter: { id: string; name: string } | null;
+  contactPerson: string;
+  contactInfo: string;
+  description: string | null;
+  status: ReunificationStatus;
+  staffNotes: string | null;
+  matchedCheckinId: string | null;
+  matchedCheckin: { id: string; personName: string; familySize: number; shelter: { id: string; name: string } } | null;
+  reportedBy: { id: string; name: string } | null;
+  createdAt: string;
+  updatedAt: string;
+  candidates: CaseCandidate[];
 }

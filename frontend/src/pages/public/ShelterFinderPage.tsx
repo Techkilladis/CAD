@@ -9,11 +9,13 @@ import { Button, Checkbox, EmptyState, ErrorState, PageLoader, RefreshBar, Searc
 import { OccupancyBar } from '../../components/OccupancyBar';
 import { ShelterMap } from '../../features/ShelterMap';
 import { RESOURCE_LABEL } from '../../lib/format';
+import { useLang } from '../../context/LangContext';
 
 type GeoState = 'idle' | 'locating' | 'denied' | 'unavailable' | 'ok';
 
 export function ShelterFinderPage() {
   const toast = useToast();
+  const { lang, t } = useLang();
   const navigate = useNavigate();
   const [q, setQ] = useState('');
   const [debouncedQ, setDebouncedQ] = useState('');
@@ -32,7 +34,7 @@ export function ShelterFinderPage() {
   const { data, loading, error, reload, loadedAt } = useLoad<PublicShelter[]>(
     () =>
       here
-        ? nearestShelters(here.lat, here.lon, hasSpace).then((rows) =>
+        ? nearestShelters(here.lat, here.lon, hasSpace, lang).then((rows) =>
             rows.filter(
               (s) =>
                 (!debouncedQ || `${s.name} ${s.address}`.toLowerCase().includes(debouncedQ.toLowerCase())) &&
@@ -40,8 +42,8 @@ export function ShelterFinderPage() {
                 (!status || s.status === status)
             )
           )
-        : listShelters({ q: debouncedQ || undefined, minAvailable: hasSpace ? 1 : undefined, resource: resource || undefined, status: status || undefined }),
-    [debouncedQ, hasSpace, resource, status, here]
+        : listShelters({ q: debouncedQ || undefined, minAvailable: hasSpace ? 1 : undefined, resource: resource || undefined, status: status || undefined, lang }),
+    [debouncedQ, hasSpace, resource, status, here, lang]
   );
 
   const locate = () => {
@@ -73,7 +75,7 @@ export function ShelterFinderPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Find a shelter</h1>
+        <h1 className="text-3xl font-bold text-gray-900">{t('findShelter')}</h1>
         <p className="text-gray-600 mt-1">Search relief shelters, check free beds and supplies, then register your family.</p>
       </div>
 
@@ -133,17 +135,17 @@ export function ShelterFinderPage() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <h2 className="font-semibold text-gray-900">{s.name}</h2>
+                    <h2 className="font-semibold text-gray-900">{s.translation?.name || s.name}</h2>
                     <p className="text-xs text-gray-500 mt-0.5">{s.address}</p>
                   </div>
                   <StatusBadge status={s.status} />
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-600">
                   {s.distance !== undefined && <span className="font-medium text-blue-700">{s.distance} km away</span>}
-                  <span>{s.availableCapacity} beds free</span>
+                  <span>{s.availableCapacity} {t('bedsFree')}</span>
                   {s.medicalSupport && (
                     <span className="inline-flex items-center gap-1 text-green-700">
-                      <Stethoscope className="h-3.5 w-3.5" /> Medical support
+                      <Stethoscope className="h-3.5 w-3.5" /> {t('medicalSupport')}
                     </span>
                   )}
                 </div>
@@ -157,11 +159,11 @@ export function ShelterFinderPage() {
                 </div>
                 <div className="mt-4 flex gap-2">
                   <Link to={`/shelters/${s.id}`} className="inline-flex px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 hover:bg-gray-50">
-                    View details
+                    {t('viewDetails')}
                   </Link>
                   {(s.status === 'ACTIVE') && s.availableCapacity > 0 && (
                     <Button size="sm" onClick={() => navigate(`/shelters/${s.id}/register`)}>
-                      Register family
+                      {t('registerFamily')}
                     </Button>
                   )}
                 </div>

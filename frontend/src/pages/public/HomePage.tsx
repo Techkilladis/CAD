@@ -27,7 +27,7 @@ export function HomePage() {
             <Link to="/shelters" className="inline-flex items-center justify-center gap-2 px-7 py-3 text-base font-semibold rounded-xl bg-white text-blue-900 hover:bg-blue-50">
               <MapPin className="h-5 w-5" /> Find a shelter
             </Link>
-            <Link to="/reunification" className="inline-flex items-center justify-center gap-2 px-7 py-3 text-base font-semibold rounded-xl border border-indigo-300 hover:bg-indigo-800">
+            <Link to="/emergency" className="inline-flex items-center justify-center gap-2 px-7 py-3 text-base font-semibold rounded-xl border border-indigo-300 hover:bg-indigo-800">
               <UserSearch className="h-5 w-5" /> Report a missing person
             </Link>
           </div>

@@ -1,11 +1,14 @@
 import { Router } from 'express';
-import { reportMissingPerson, getAllCases, updateCaseStatus } from '../controllers/reunification.controller';
-import { requireAuth, requireRole } from '../middleware/auth.middleware';
+import { reportMissingPerson, publicSearch, getAllCases, updateCase } from '../controllers/reunification.controller';
+import { requireAuth, optionalAuth, requireRole } from '../middleware/auth.middleware';
 
 const router = Router();
+const staff = [requireAuth, requireRole(['ADMIN', 'COORDINATOR'])];
 
-router.post('/', reportMissingPerson); // Public route
-router.get('/', requireAuth, requireRole(['ADMIN', 'COORDINATOR']), getAllCases);
-router.patch('/:id/status', requireAuth, requireRole(['ADMIN', 'COORDINATOR']), updateCaseStatus);
+router.post('/', optionalAuth, reportMissingPerson); // public
+router.get('/public-search', publicSearch); // public, privacy-limited
+router.get('/', ...staff, getAllCases);
+router.patch('/:id', ...staff, updateCase);
+router.patch('/:id/status', ...staff, updateCase); // kept for compatibility
 
 export default router;

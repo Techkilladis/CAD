@@ -14,7 +14,7 @@ type Tx = Prisma.TransactionClient;
 
 const publicInclude = {
   resources: { where: { isActive: true } },
-  translations: { select: { locale: true } },
+  translations: true,
 } satisfies Prisma.ShelterInclude;
 
 type PublicShelterRow = Prisma.ShelterGetPayload<{ include: typeof publicInclude }>;
@@ -24,9 +24,11 @@ const pct = (s: { capacityTotal: number; capacityOccupied: number }) =>
   s.capacityTotal > 0 ? Math.round((s.capacityOccupied / s.capacityTotal) * 100) : 0;
 
 /** Public-safe projection: no occupant data, resources only as type + stock status + unit. */
-function toPublic(s: PublicShelterRow, distanceKm?: number) {
+function toPublic(s: PublicShelterRow, distanceKm?: number, lang?: string) {
   const languages = Array.from(new Set(['en', ...s.translations.map((t) => t.locale)]));
+  const tr = lang ? s.translations.find((t) => t.locale === lang) : undefined;
   return {
+    translation: tr ? { name: tr.name, description: tr.description, instructions: tr.instructions } : null,
     id: s.id,
     name: s.name,
     address: s.address,
@@ -71,6 +73,7 @@ export class ShelterService {
     resource?: ResourceType;
     status?: ShelterStatus;
     includeInactive?: boolean;
+    lang?: string;
   }) {
     const where: Prisma.ShelterWhereInput = {};
     if (f.status) where.status = f.status;
@@ -86,10 +89,10 @@ export class ShelterService {
       where.resources = { some: { resourceType: f.resource, isActive: true, quantity: { gt: 0 } } };
     }
     const rows = await prisma.shelter.findMany({ where, include: publicInclude, orderBy: { name: 'asc' } });
-    return rows.filter((s) => f.minAvailable === undefined || available(s) >= f.minAvailable).map((s) => toPublic(s));
+    return rows.filter((s) => f.minAvailable === undefined || available(s) >= f.minAvailable).map((s) => toPublic(s, undefined, f.lang));
   }
 
-  static async nearest(f: { latitude: number; longitude: number; onlyAvailable?: boolean; limit: number }) {
+  static async nearest(f: { latitude: number; longitude: number; onlyAvailable?: boolean; limit: number; lang?: string }) {
     const where: Prisma.ShelterWhereInput = f.onlyAvailable ? { status: 'ACTIVE' } : { status: { not: 'INACTIVE' } };
     const rows = await prisma.shelter.findMany({ where, include: publicInclude });
     return rows
@@ -97,7 +100,7 @@ export class ShelterService {
       .map((s) => ({ s, d: calculateDistance(f.latitude, f.longitude, s.latitude, s.longitude) }))
       .sort((a, b) => a.d - b.d)
       .slice(0, f.limit)
-      .map(({ s, d }) => toPublic(s, round1(d)));
+      .map(({ s, d }) => toPublic(s, round1(d), f.lang));
   }
 
   static async getPublic(id: string, lang?: string, from?: { latitude?: number; longitude?: number }) {
@@ -106,7 +109,7 @@ export class ShelterService {
       include: { resources: { where: { isActive: true } }, translations: true },
     });
     if (!s) throw notFound('Shelter not found');
-    const base = toPublic({ ...s, translations: s.translations.map((t) => ({ locale: t.locale })) });
+    const base = toPublic(s);
     const wanted = lang ? s.translations.find((t) => t.locale === lang) : undefined;
     const fallback = s.translations.find((t) => t.locale === 'en');
     const tr = wanted ?? fallback ?? null;

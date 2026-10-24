@@ -7,12 +7,14 @@ export const listSheltersQuery = z.object({
   resource: resourceTypeEnum.optional(),
   status: shelterStatusEnum.optional(),
   includeInactive: queryBool,
+  lang: z.string().trim().max(10).optional(),
 });
 
 export const nearestQuery = z.object({
   latitude: z.coerce.number().min(-90).max(90),
   longitude: z.coerce.number().min(-180).max(180),
   onlyAvailable: queryBool,
+  lang: z.string().trim().max(10).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
 

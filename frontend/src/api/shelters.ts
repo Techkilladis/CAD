@@ -9,13 +9,14 @@ export interface ShelterFilters {
   minAvailable?: number;
   resource?: ResourceType;
   status?: ShelterStatus;
+  lang?: string;
 }
 
 export const listShelters = (f: ShelterFilters = {}) =>
   apiClient.get<PublicShelter[]>('/shelters', { params: f }).then((r) => r.data);
 
-export const nearestShelters = (latitude: number, longitude: number, onlyAvailable = false) =>
-  apiClient.get<PublicShelter[]>('/shelters/nearest', { params: { latitude, longitude, onlyAvailable } }).then((r) => r.data);
+export const nearestShelters = (latitude: number, longitude: number, onlyAvailable = false, lang?: string) =>
+  apiClient.get<PublicShelter[]>('/shelters/nearest', { params: { latitude, longitude, onlyAvailable, lang } }).then((r) => r.data);
 
 export const getPublicShelter = (id: string, lang?: string) =>
   apiClient.get<PublicShelterDetail>(`/shelters/${id}`, { params: { lang } }).then((r) => r.data);

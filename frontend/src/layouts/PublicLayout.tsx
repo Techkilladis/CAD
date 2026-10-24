@@ -4,11 +4,25 @@ import { HeartPulse, LogIn, LogOut, LayoutDashboard, Menu, X } from 'lucide-reac
 import clsx from 'clsx';
 import { useAuth } from '../context/AuthContext';
 import { HOME_FOR_ROLE } from '../nav';
+import { LANGS, useLang } from '../context/LangContext';
+
+function LangSwitch() {
+  const { lang, setLang } = useLang();
+  return (
+    <div className="inline-flex rounded-lg border border-gray-300 overflow-hidden" role="group" aria-label="Language">
+      {LANGS.map((l) => (
+        <button key={l.code} onClick={() => setLang(l.code)} aria-pressed={lang === l.code} className={`px-2.5 py-1 text-xs font-medium ${lang === l.code ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>
+          {l.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 const links = [
   { to: '/', label: 'Home', end: true },
   { to: '/shelters', label: 'Find Shelter' },
-  { to: '/reunification', label: 'Missing Persons' },
+  { to: '/emergency', label: 'Emergency Info' },
 ];
 
 export function PublicLayout() {
@@ -36,6 +50,8 @@ export function PublicLayout() {
                 {l.label}
               </NavLink>
             ))}
+            <span className="h-6 w-px bg-gray-300 mx-2" />
+            <LangSwitch />
             <span className="h-6 w-px bg-gray-300 mx-2" />
             {user ? (
               <>
@@ -70,6 +86,7 @@ export function PublicLayout() {
                 {l.label}
               </NavLink>
             ))}
+            <div className="px-3 py-2"><LangSwitch /></div>
             {user ? (
               <Link to={HOME_FOR_ROLE[user.role]} onClick={() => setOpen(false)} className="px-3 py-2 text-sm font-medium text-blue-700">
                 My console

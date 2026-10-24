@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { LayoutDashboard, Building2, Users, Boxes, Gauge, Settings, CalendarClock, Truck, Bell, HandHeart, HeartPulse, Gift, UserCircle } from 'lucide-react';
+import { LayoutDashboard, Building2, Users, Boxes, Gauge, Settings, CalendarClock, Truck, Bell, HandHeart, HeartPulse, Gift, UserCircle, UserSearch } from 'lucide-react';
 import type { Role } from './api/types';
 
 export interface NavItem {
@@ -22,6 +22,7 @@ export const NAV: Record<Role, NavItem[]> = {
     { to: '/admin/volunteers', label: 'Volunteers', icon: HandHeart },
     { to: '/admin/medical', label: 'Medical', icon: HeartPulse },
     { to: '/admin/donations', label: 'Donations', icon: Gift },
+    { to: '/admin/reunification', label: 'Reunification', icon: UserSearch },
   ],
   COORDINATOR: [
     { to: '/coordinator', label: 'Overview', icon: LayoutDashboard, end: true },
@@ -32,6 +33,7 @@ export const NAV: Record<Role, NavItem[]> = {
     { to: '/coordinator/volunteers', label: 'Volunteers', icon: HandHeart },
     { to: '/coordinator/medical', label: 'Medical', icon: HeartPulse },
     { to: '/coordinator/donations', label: 'Donations', icon: Gift },
+    { to: '/coordinator/reunification', label: 'Reunification', icon: UserSearch },
     { to: '/coordinator/shelter', label: 'Shelter settings', icon: Settings },
   ],
   VOLUNTEER: [

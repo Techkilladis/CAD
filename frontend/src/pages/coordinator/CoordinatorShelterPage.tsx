@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLoad } from '../../hooks/useLoad';
 import { Button, Card, CardBody, CardHeader, Checkbox, EmptyState, ErrorState, Input, PageLoader, Select, Textarea, useToast } from '../../components/ui';
 import { PageHeader } from '../../components/PageHeader';
+import { TranslationEditor } from '../../features/TranslationEditor';
 
 /** Coordinator-editable shelter fields only: description, contact, medical support, ACTIVE<->FULL. */
 export function CoordinatorShelterPage() {
@@ -88,6 +89,7 @@ export function CoordinatorShelterPage() {
           </form>
         </CardBody>
       </Card>
+      <div className="mt-6"><TranslationEditor key={s.id} shelterId={s.id} /></div>
     </div>
   );
 }

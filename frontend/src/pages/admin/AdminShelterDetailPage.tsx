@@ -8,9 +8,10 @@ import { OccupancyBar } from '../../components/OccupancyBar';
 import { OccupantsPanel } from '../../features/OccupantsPanel';
 import { ResourcesPanel } from '../../features/ResourcesPanel';
 import { ShelterForm } from '../../features/ShelterForm';
+import { TranslationEditor } from '../../features/TranslationEditor';
 import { fmtDateTime } from '../../lib/format';
 
-type Tab = 'overview' | 'occupants' | 'resources';
+type Tab = 'overview' | 'occupants' | 'resources' | 'translations';
 
 export function AdminShelterDetailPage() {
   const { id = '' } = useParams();
@@ -34,6 +35,7 @@ export function AdminShelterDetailPage() {
     { key: 'overview', label: 'Overview' },
     { key: 'occupants', label: 'Occupants', count: o?.activeOccupants.length },
     { key: 'resources', label: 'Resources', count: o?.resources.filter((r) => r.isActive).length },
+    { key: 'translations', label: 'Translations' },
   ];
 
   return (
@@ -120,6 +122,7 @@ export function AdminShelterDetailPage() {
         )}
         {tab === 'occupants' && <OccupantsPanel shelterId={id} />}
         {tab === 'resources' && <ResourcesPanel shelterId={id} />}
+        {tab === 'translations' && <TranslationEditor shelterId={id} />}
       </div>
 
       <ShelterForm open={editing} shelter={s} onClose={() => setEditing(false)} onSaved={reloadAll} />
