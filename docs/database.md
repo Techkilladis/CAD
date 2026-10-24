@@ -1,70 +1,38 @@
-# Database Schema
+# Database
 
-SafeHaven uses PostgreSQL for relational data storage, managed via Prisma ORM.
+PostgreSQL via Prisma. Schema: `backend/prisma/schema.prisma`; history: `backend/prisma/migrations/` (create changes with `npx prisma migrate dev --name <name>`, never `db push`).
+
+| Database | Purpose | Config |
+|---|---|---|
+| `safehaven` | development data, seeded with Chennai demo data | `backend/.env` |
+| `safehaven_test` | automated tests only (reset by jest `globalSetup`) | `backend/.env.test` |
+
+The jest setup refuses to run unless `DATABASE_URL` contains `safehaven_test`, so tests can never touch the dev database.
 
 ## Models
 
-### `User`
-Manages system users including coordinators and administrators. (Will integrate with Cognito in Phase 2).
-- `id`: String (UUID), Primary Key
-- `name`: String
-- `email`: String (Unique)
-- `phone`: String?
-- `role`: Enum (`COORDINATOR`, `ADMIN`, `VOLUNTEER`)
-- `cognitoSub`: String? (For future AWS Cognito integration)
-- `createdAt`: DateTime
+| Model | Purpose / key points |
+|---|---|
+| **User** | `role` ADMIN / COORDINATOR / VOLUNTEER, `isActive`, skills, languages, `cognitoSub` (future) |
+| **Shelter** | capacity, `capacityOccupied`, `status` ACTIVE / INACTIVE / FULL / EMERGENCY_CLOSED, coordinator, contacts, `medicalSupport`. Indexed on status and coordinator |
+| **ShelterTranslation** | `(shelterId, locale)` unique; name / description / instructions. Locales are data, not columns |
+| **Resource** | `(shelterId, resourceType)` unique; quantity, unit, `lowStockThreshold`, `isActive` |
+| **StockMovement** | inventory ledger: SET, ADJUSTMENT, TRANSFER_OUT / IN / RETURN, DONATION; `delta`, `quantityAfter`, user, `referenceId` |
+| **Checkin** | family record: size, medical flags, computed `priority`, `status` PENDING / CONFIRMED / CHECKED_OUT / CANCELLED, `source`, unique `clientRequestId` (offline idempotency) and `referenceCode` (public registration) |
+| **Transfer** | from/to shelter, resource, quantity, status, requester, approver, receiver, canceller and timestamps, reasons |
+| **AlertLog** | type, severity, status, `dedupeKey` (e.g. `LOW_STOCK:<shelter>:WATER`), resource, acknowledged / resolved by + at. Indexed on `(dedupeKey,status)` |
+| **VolunteerShift / VolunteerAssignment** | shift with title, task, times, `requiredCount`, status OPEN / CANCELLED; unique `(shiftId, volunteerId)` |
+| **Donation** | donor, resource, quantity, status PENDING / ACCEPTED / REJECTED, `inventoryApplied`, receipt reference/URL, recorder/acceptor |
+| **ReunificationCase** | missing person, contact, last known shelter, status, linked check-in, staff notes |
+| **AuditLog** | user, action, entity, entityId, `metadata` JSON, timestamp. Written inside the same transaction as the change |
+| **SystemSetting** | key/value alert thresholds edited in Admin → Settings |
 
-### `Shelter`
-Represents a flood relief shelter.
-- `id`: String (UUID), Primary Key
-- `name`: String
-- `address`: String
-- `latitude`: Float
-- `longitude`: Float
-- `capacityTotal`: Int
-- `capacityOccupied`: Int (Default: 0)
-- `coordinatorId`: String? (Foreign Key -> User)
-- `createdAt`: DateTime
-- `updatedAt`: DateTime
+## Integrity rules enforced in code (not only in the UI)
+- Check-in, checkout, confirm, resource changes, transfer state changes and donation acceptance run in `prisma.$transaction` with **guarded updates** (`updateMany` with a `where` on the expected status/quantity, then assert `count === 1`).
+- Quantities and occupancy can never go negative; capacity cannot be exceeded.
+- Transfers: PENDING only reserves logically (`available = quantity − pending outgoing`); approval deducts the source, receipt credits the destination, cancellation after approval restores the source. Replays fail with 409.
+- Alerts are created/auto-resolved only by `AlertService.evaluateShelter`, deduped on `dedupeKey` (LOW_STOCK is per resource).
+- Foreign keys from newer tables use `Cascade` / `SetNull` so records are never orphaned and users can be deactivated, not deleted.
 
-### `Resource`
-Tracks inventory items at a specific shelter.
-- `id`: String (UUID), Primary Key
-- `shelterId`: String (Foreign Key -> Shelter)
-- `resourceType`: Enum (`FOOD`, `WATER`, `MEDICINE`, `BLANKETS`)
-- `quantity`: Int
-- `unit`: String (e.g., 'boxes', 'liters')
-- `lowStockThreshold`: Int
-- `updatedAt`: DateTime
-
-### `Checkin`
-Logs individuals or families staying at a shelter.
-- `id`: String (UUID), Primary Key
-- `shelterId`: String (Foreign Key -> Shelter)
-- `personName`: String
-- `familySize`: Int
-- `medicalFlag`: Boolean (Default: false)
-- `checkedInAt`: DateTime (Default: now)
-- `checkedOutAt`: DateTime?
-
-### `Transfer`
-Records resource transfer requests between shelters.
-- `id`: String (UUID), Primary Key
-- `fromShelterId`: String (Foreign Key -> Shelter)
-- `toShelterId`: String (Foreign Key -> Shelter)
-- `resourceType`: Enum (`FOOD`, `WATER`, `MEDICINE`, `BLANKETS`)
-- `quantity`: Int
-- `status`: Enum (`PENDING`, `APPROVED`, `REJECTED`, `COMPLETED`)
-- `requestedBy`: String (Foreign Key -> User)
-- `approvedBy`: String? (Foreign Key -> User)
-- `createdAt`: DateTime
-- `updatedAt`: DateTime
-
-### `AlertLog`
-Logs system alerts such as low stock or overcrowding. (Will trigger EventBridge/SNS in Phase 2).
-- `id`: String (UUID), Primary Key
-- `shelterId`: String (Foreign Key -> Shelter)
-- `alertType`: Enum (`LOW_STOCK`, `OVERCROWDING`)
-- `triggeredAt`: DateTime (Default: now)
-- `notifiedVia`: String? (e.g., 'DASHBOARD', 'EMAIL', 'SMS')
-- `acknowledged`: Boolean (Default: false)
+## Seed
+`cd backend && npx prisma db seed` **wipes and reseeds the dev database**: 6 Chennai shelters (healthy, overcrowded, full, low-medicine, inactive, emergency-closed) with English + Tamil translations, 8 users (2 admins, 3 coordinators, 3 volunteers), ~45 check-in groups with consistent occupancy, pending public registrations, resources with ledger history, transfers in every status, shifts, donations, reunification cases, settings, and alerts generated by the real alert engine.

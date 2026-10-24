@@ -1,76 +1,58 @@
-# SafeHaven — Flood Shelter & Relief Resource Management System
+# SafeHaven — Flood Shelter & Relief Resource Management
 
-SafeHaven is a flood-relief coordination platform that helps displaced people find nearby shelters, shelter coordinators manage occupancy and essential resources, and relief administrators monitor shelters across a district.
+A complete **local prototype** of a flood-relief platform: the public finds shelters and registers families, coordinators run their shelter (occupants, stock, transfers, volunteers, donations, medical priorities, reunification), and administrators oversee the whole district. Demo data is set in Chennai (English + Tamil). No AWS services are used yet — see `docs/aws-migration.md`.
 
-## Features
+## Roles
+| Role | Can do |
+|---|---|
+| Public | find shelters (map, filters, nearest, EN/தமிழ்), register a family and get a reference code, see emergency info, report/search missing persons (privacy-limited) |
+| Volunteer | browse and sign up for shifts, cancel, manage profile |
+| Coordinator | their own shelter(s): check-in/out, confirm public registrations, offline queue, resources + ledger, transfers, alerts, shifts, donations, medical priorities, reunification, reports, translations |
+| Admin | everything: shelters (create/edit/activate), district occupancy and resources, approve/reject transfers, alerts + *Run alert check*, volunteers, medical, donations, reunification, reports, users, audit log, settings |
 
-- **Public Shelter Finder**: Locate nearby shelters on a map based on your location and check available capacity.
-- **Coordinator Dashboard**: Manage check-ins/check-outs, track resource inventory (Food, Water, Medicine, Blankets).
-- **Admin Dashboard**: District-wide monitoring, critical alerts (low-stock, overcrowding), and resource transfer management.
-- **Local Demo Authentication**: Role-based access control (`x-user-id` header mechanism) for Coordinators and Admins, serving as the baseline for future AWS Cognito migration.
+## Stack
+React 19 · Vite · TypeScript · Tailwind 4 · React Router 7 · Leaflet — Node · Express · TypeScript · Prisma · PostgreSQL. Only `zod` (validation) and `vitest` (tests) were added; charts are plain SVG/CSS.
 
-## Tech Stack
+## Setup
+Prerequisites: Node 20+, PostgreSQL running locally.
 
-### Frontend
-- React 18, Vite, TypeScript
-- Tailwind CSS for styling
-- React Router DOM for routing
-- React Leaflet for interactive maps
-
-### Backend
-- Node.js, Express, TypeScript
-- RESTful API design
-- Prisma ORM
-
-### Database
-- PostgreSQL (relational schema design)
-
-## Folder Structure
-
+```bash
+# 1. databases (psql): CREATE DATABASE safehaven; CREATE DATABASE safehaven_test;
+# 2. backend
+cd backend
+cp .env.example .env          # set DATABASE_URL for "safehaven"
+# .env.test must point at "safehaven_test" (tests refuse to run otherwise)
+npm install
+npx prisma migrate deploy
+npx prisma db seed            # WIPES and reseeds the dev database with demo data
+npm run dev                   # http://localhost:5000
+# 3. frontend
+cd ../frontend
+npm install
+npm run dev                   # http://localhost:5173
 ```
-safehaven/
-├── backend/            # Express.js REST API
-│   ├── prisma/         # Database schema & migrations
-│   └── src/            # Controllers, Routes, Services, Models
-├── frontend/           # React + Vite Application
-│   └── src/            # Components, Pages, Layouts, API clients
-└── docs/               # System architecture and documentation
-```
+Open `/login` and pick a demo user (no passwords).
 
-## Setup Instructions
+Optional: `ALERT_SCAN_INTERVAL_MS=60000` in `backend/.env` starts the periodic alert scan (never runs under test).
 
-### Prerequisites
-- Node.js (v18 or higher)
-- PostgreSQL (v14 or higher)
+## Commands
+| Where | Command | What |
+|---|---|---|
+| backend | `npx tsc --noEmit` | type check |
+| backend | `npm run test` | jest (in band) against `safehaven_test`, which is migrated fresh each run |
+| frontend | `npx tsc -b` / `npm run build` | type check / production build |
+| frontend | `npm run test` | vitest (offline queue) |
 
-### 1. Database Setup
-Ensure PostgreSQL is running on your machine. Create a new database, e.g., `safehaven`.
+## Demo accounts (after seeding)
+Admins: Anitha Rajan, Suresh Babu · Coordinators: Priya Venkatesh (Velachery, Tambaram), Karthik Subramanian (Adyar, Perungudi), Meena Krishnan (Mudichur, T. Nagar) · Volunteers: Divya Lakshmi, Arun Kumar, Fatima Begum. Demo registration codes `SH-DEMO01..03` are pending at Velachery/Tambaram.
 
-### 2. Backend Setup
-1. Open a terminal and navigate to the `backend` directory.
-2. Run `npm install` to install dependencies.
-3. Copy `.env.example` to `.env` and update the `DATABASE_URL` with your local PostgreSQL connection string.
-4. Run Prisma migrations: `npx prisma migrate dev --name init`
-5. Seed the database: `npx prisma db seed`
-6. Start the server: `npm run dev` (API will run on http://localhost:5000)
+## Known limitations (honest list)
+- Demo authentication only (no passwords); `x-user-id` header.
+- Notifications are console/DB only; receipts are a reference string, not an uploaded file.
+- No push: screens show "Current status as of …" with Refresh and optional 30 s polling.
+- Offline support covers **check-in only**, and only while the app is already loaded; capacity is verified by the server when the queue syncs.
+- Translations cover shelter information (name, description, arrival instructions) and a small label set, not the whole UI.
+- `GET /dashboard` (legacy admin payload) is kept for compatibility but unused by the UI.
 
-### 3. Frontend Setup
-1. Open a new terminal and navigate to the `frontend` directory.
-2. Run `npm install` to install dependencies.
-3. Start the Vite dev server: `npm run dev` (Frontend will run on http://localhost:5173)
-4. Open the browser to the provided localhost URL.
-
-## API & Architecture Overview
-- Read [architecture.md](./docs/architecture.md) for the high-level system design.
-- Read [api.md](./docs/api.md) for the API endpoints documentation.
-- Read [database.md](./docs/database.md) for the database schema details.
-
-## Future AWS Migration
-This is Phase 1 (Local Prototype). In future phases, this platform will be migrated to AWS using:
-- Amazon RDS (PostgreSQL)
-- AWS Lambda & API Gateway (Serverless backend)
-- Amazon Cognito (Auth)
-- Amazon ElastiCache (Redis for nearest shelter caching)
-- AWS Step Functions (Transfer workflows)
-- Amazon SNS / SES / EventBridge (Alerts)
-- Amazon S3 & CloudFront (Frontend hosting)
+## Docs
+`docs/IMPLEMENTATION_PLAN.md` (plan + progress tracker) · `docs/api.md` · `docs/database.md` · `docs/architecture.md` · `docs/aws-migration.md`

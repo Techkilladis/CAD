@@ -1,60 +1,30 @@
-# AWS Migration Readiness Review
+# AWS migration map
 
-The current local prototype of SafeHaven is designed with future AWS migration in mind. 
-Below is a breakdown of the architectural mappings and where specific AWS services will replace current local implementation details.
+The local prototype has **no AWS code**. Every replaceable concern sits behind a seam so migration swaps an implementation instead of rewriting features.
 
-## Current Local Architecture
-- **Frontend**: React + Vite SPA (served locally)
-- **Backend API**: Express.js REST API (running on local Node.js server)
-- **Database**: PostgreSQL (running locally)
-- **ORM**: Prisma
-- **Alerts/Notifications**: Simple database inserts (`AlertLog` table)
+| Concern | Local today | Seam / file | AWS target | Migration notes |
+|---|---|---|---|---|
+| Frontend hosting | Vite dev server | — | S3 + CloudFront | `npm run build` output; set `VITE_API_URL`. SPA fallback to `index.html` |
+| API | Express on :5000 | `server.ts` | Lambda + API Gateway (or ECS/App Runner) | `app` is exported; wrap with a Lambda adapter. Connection pooling (RDS Proxy) needed for Prisma on Lambda |
+| Database | PostgreSQL | `prisma/schema.prisma`, migrations | RDS / Aurora PostgreSQL | `prisma migrate deploy`; no schema change required |
+| Authentication | `x-user-id` demo header | `middleware/auth.middleware.ts` | Cognito user pool + JWT | Replace `loadUser`; map `User.cognitoSub` (column already exists); roles → Cognito groups. Routes/services unchanged |
+| Notifications | console + `notifiedVia='LOCAL'` | `integrations/NotificationPublisher.ts` | SNS topics (SMS/e-mail/push) or SES | Implement `publish(event)` and return the channel label |
+| Audit trail | PostgreSQL `AuditLog` | `integrations/AuditSink.ts` | CloudWatch Logs (keep Postgres for the viewer if wanted) | Currently written in the same DB transaction; a CloudWatch sink would be best-effort/outbox |
+| Receipts | reference string only | `integrations/ReceiptStorage.ts` | S3 (+ presigned URLs) | `Donation.receiptUrl` already stores the future key |
+| Scheduled alert scan | `setInterval` (`integrations/alertScheduler.ts`) | `AlertService.runGlobalCheck()` | EventBridge Scheduler → Lambda | Remove the interval; schedule the same function. `POST /alerts/run-check` stays as manual trigger |
+| Transfer workflow | synchronous state machine | `services/transfer.service.ts` | Step Functions (optional) | Each transition is already an idempotent guarded step |
+| Offline queue | localStorage in the browser | `frontend/src/offline/` | unchanged (client side) | Server idempotency on `clientRequestId` carries over |
+| Secrets/config | `.env` files | — | SSM Parameter Store / Secrets Manager | `DATABASE_URL`, `ALERT_SCAN_INTERVAL_MS` |
 
-## Future AWS Architecture Mapping
+## Suggested order
+1. RDS + `migrate deploy`, point the API at it.
+2. Cognito + JWT middleware (biggest behavioural change; protects everything else).
+3. Deploy API, then S3/CloudFront for the SPA.
+4. SNS publisher, EventBridge scan, S3 receipts.
 
-### Frontend Hosting
-**Current**: Local Vite Dev Server (`npm run dev`)
-**Future**: **Amazon S3 + Amazon CloudFront**
-- The React application will be compiled into static assets (`npm run build`).
-- Assets will be uploaded to an S3 bucket configured for static website hosting.
-- Amazon CloudFront will serve as the CDN to distribute the frontend globally with low latency.
-
-### Backend API Layer
-**Current**: Express.js Server (`server.ts`)
-**Future**: **Amazon API Gateway + AWS Lambda**
-- The Express routes will be decoupled from the HTTP server and deployed as serverless functions.
-- Tools like `serverless-http` can wrap the existing Express app, OR controllers can be directly mapped to Lambda handlers.
-- **Architectural Readiness**: We have abstracted the business logic into `services/` (e.g., `ShelterService`). This means the core logic has zero coupling with the Express HTTP layer, making it trivial to invoke these services directly from an AWS Lambda event handler.
-
-### Database Layer
-**Current**: Local PostgreSQL
-**Future**: **Amazon RDS (PostgreSQL)**
-- The database schema remains strictly PostgreSQL.
-- Connection strings in `.env` will simply be updated to point to the RDS cluster endpoint.
-
-### Authentication & Identity
-**Current**: Hardcoded/Mock user IDs.
-**Future**: **Amazon Cognito**
-- Cognito User Pools will manage coordinators and administrators.
-- API Gateway will use Cognito Authorizers to validate JWT tokens.
-- The `cognitoSub` field already exists in the `User` schema to link Cognito identities to our database records.
-
-### Caching
-**Current**: None.
-**Future**: **Amazon ElastiCache (Redis)**
-- Nearest shelter calculations (Haversine formula) and the public `/api/shelters` list are read-heavy.
-- ElastiCache will sit in front of the RDS database to serve these queries instantly.
-
-### Workflows (Transfers)
-**Current**: Synchronous state changes via API calls (`PENDING` -> `APPROVED`).
-**Future**: **AWS Step Functions**
-- Resource transfers are inherently multi-step (Request -> Wait for Approval -> Deduct Source -> Add Destination -> Notify).
-- Step Functions will orchestrate this saga, ensuring reliability, retries, and rollback mechanisms if a transaction fails.
-
-### Event-Driven Alerts & Notifications
-**Current**: Creating records in `AlertLog` table synchronously during check-ins or resource updates.
-**Future**: **Amazon EventBridge + Amazon SNS + Amazon SES**
-- When occupancy hits 90% or stock hits the threshold, Lambda will emit a domain event to **Amazon EventBridge** (e.g., `Shelter.Overcrowded`).
-- EventBridge will route this event to **Amazon SNS** to push SMS alerts to coordinators.
-- **Amazon SES** will send comprehensive email digests to district admins.
-- **Amazon CloudWatch** will collect logs and provide dashboards for API metrics and backend health.
+## Known gaps to close in AWS
+- Demo auth has no passwords; Cognito adds real sign-in and MFA.
+- Notifications are console/DB only.
+- Receipts are not uploaded.
+- Polling instead of push; add WebSocket/AppSync only if real-time becomes a requirement.
+- Translations cover shelter information only.

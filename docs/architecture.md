@@ -1,43 +1,49 @@
-# System Architecture
+# Architecture
 
-## Current State (Phase 1 - Local Prototype)
+## Local prototype
 
-The current implementation of SafeHaven is a local prototype designed with a clean separation of concerns to facilitate a future migration to AWS.
+```
+Browser (React 19 + Vite + Tailwind 4 + Router 7 + Leaflet)
+   │  Axios, x-user-id header (demo auth)
+   ▼
+Express + TypeScript  :5000
+   routes → controllers (thin, zod-validated) → services → Prisma → PostgreSQL
+   │
+   └── integrations/  (replaceable seams)
+```
 
-### Components
+### Backend layering
+- **routes/** wire paths, `requireAuth` / `optionalAuth` / `requireRole`.
+- **controllers/** parse input with zod (`schemas/`) and call one service method (`asyncHandler`).
+- **services/** hold all business rules and transactions. `AlertService.evaluateShelter(tx, shelterId)` is the **only** alert path.
+- **utils/access.ts** is the single place that decides shelter ownership (`getManagedShelterIds`, `assertShelterAccess`, `scopeShelterFilter`).
+- **middleware/error.middleware.ts** maps `HttpError`, zod errors and Prisma `P2025/P2002/P2003` to 404/400/409.
+- **auth.middleware.ts** is the only file that reads `x-user-id`.
 
-1. **Frontend**: React SPA (Single Page Application) built with Vite and TypeScript.
-   - Hosted locally via Vite dev server.
-   - Uses React Router for client-side routing.
-   - Communicates with the backend via RESTful HTTP requests using Axios.
-2. **Backend**: Express.js REST API with TypeScript.
-   - Hosted locally via Node.js/nodemon.
-   - Handles business logic, validation, and database interactions.
-3. **Database**: PostgreSQL.
-   - Accessed via Prisma ORM.
+### Integration seams (`backend/src/integrations/`)
+| Seam | Local implementation | AWS replacement |
+|---|---|---|
+| `NotificationPublisher` | console log, `notifiedVia = LOCAL` | SNS / SES |
+| `AuditSink` | PostgreSQL `AuditLog` | CloudWatch Logs |
+| `ReceiptStorage` | reference string only | S3 |
+| `alertScheduler` | `setInterval`, never in tests, single start, no overlapping scans | EventBridge Scheduler |
+| Transfer workflow | synchronous state machine in `transfer.service` | Step Functions |
+| Authentication | `x-user-id` header | Cognito JWT |
 
-### Request Flow
-`Client (Browser) -> Express Server (http://localhost:5000) -> Prisma ORM -> PostgreSQL`
+### Frontend structure
+- `api/` typed domain modules over one Axios client (`getErrorMessage`, `getFieldErrors`).
+- `components/ui/` design kit (Button, Card, DataTable, Modal/Drawer, ConfirmDialog, Tabs, Toast, RefreshBar, …). Errors are shown as toasts, never `alert()`.
+- `layouts/` `PublicLayout` and role-driven `ConsoleLayout`; `nav.ts` is the single role → menu map.
+- `features/` components shared by admin and coordinator screens (maps, forms, tables, panels, charts).
+- `offline/` the check-in queue (pure TypeScript, injected storage and submitter, unit tested), connectivity hook and overview cache.
+- `context/` auth (session verified via `/auth/me`, selected shelter) and language.
 
----
+### Behaviour principles
+- **No fake real-time.** Screens say "Current status as of HH:MM:SS" with a Refresh button; some offer opt-in 30 s polling.
+- **Privacy by construction.** Public endpoints use dedicated projections; occupant and medical data exist only on staff endpoints scoped by shelter.
+- **Idempotency.** Offline check-ins carry a `clientRequestId`; transfer, donation, checkout and alert actions are guarded so a repeated request cannot double-apply.
+- **Service worker** caches the static app shell only (production builds); API responses are never cached.
 
-## Target State (Phase 2 - AWS Migration)
-
-The application architecture will be migrated to a serverless and managed infrastructure on AWS.
-
-### Planned Components
-
-- **Frontend Hosting**: Amazon S3 (for static assets) distributed via Amazon CloudFront (CDN) for low-latency delivery.
-- **API Layer**: Amazon API Gateway routing requests to AWS Lambda functions. Express.js routes will be decomposed into individual Lambda functions or wrapped using serverless-http.
-- **Database Layer**: Amazon RDS for PostgreSQL.
-- **Authentication**: Amazon Cognito for managing users, coordinators, and admins.
-- **Caching**: Amazon ElastiCache (Redis) to cache nearest-shelter calculations and high-frequency read requests.
-- **Workflows**: AWS Step Functions to orchestrate the multi-step resource transfer process (Request -> Approve/Reject -> Execute).
-- **Notifications**: 
-  - Amazon EventBridge to capture system events (e.g., low stock, overcrowding).
-  - Amazon SNS for SMS/Push notifications.
-  - Amazon SES for email alerts.
-
-### Planned Request Flow (AWS)
-`Client -> CloudFront -> S3 (Static UI)`
-`Client -> API Gateway -> Lambda -> RDS / ElastiCache`
+### Testing
+- Backend: jest + supertest against `safehaven_test` (migrated fresh each run); concurrency cases for approvals, donations, sign-ups and offline replays.
+- Frontend: vitest for the offline queue (enqueue, sync, failure, single-flight, idempotent replay).
