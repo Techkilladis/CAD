@@ -6,7 +6,7 @@
 
 | Phase | Scope | Status | Notes / deviations / limitations |
 |---|---|---|---|
-| 0 | Plan in repo, CLAUDE.md, git init, Postgres + `safehaven_test` DB | in progress | |
+| 0 | Plan in repo, CLAUDE.md, git init, Postgres + `safehaven_test` DB | done | `backend/.env.test` points at `safehaven_test` (gitignored). psql: `C:\Program Files\PostgreSQL\18\bin\psql.exe`. Dev DB creds in `backend/.env`. |
 | A | Schema + migration, infra (errors/validation/access/audit), shelters, check-in/out/register, resources + ledger, UI kit, layouts, nav, admin shelters/occupancy/resources, coordinator overview/occupants/resources, public finder/detail/register | not started | |
 | B | Transfer workflow, alert engine + scheduler + run-check, admin/coordinator transfers & alerts, admin overview | not started | |
 | C | Volunteers (all roles), medical priority views, donations | not started | |
