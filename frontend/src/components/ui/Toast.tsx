@@ -1,28 +1,19 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 import clsx from 'clsx';
-
-type Kind = 'success' | 'error' | 'info';
-interface ToastItem {
-  id: number;
-  kind: Kind;
-  message: string;
-}
-
-interface ToastApi {
-  success: (message: string) => void;
-  error: (message: string) => void;
-  info: (message: string) => void;
-}
-
-const ToastContext = createContext<ToastApi | null>(null);
+import { ToastContext, type Kind, type ToastApi, type ToastItem } from './ToastContext';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 const styles: Record<Kind, string> = {
   success: 'border-green-200 bg-green-50 text-green-900',
   error: 'border-red-200 bg-red-50 text-red-900',
   info: 'border-blue-200 bg-blue-50 text-blue-900',
 };
-const icons = { success: CheckCircle2, error: AlertCircle, info: Info };
+const icons: Record<Kind, React.ComponentType<{ className?: string }>> = {
+  success: CheckCircle2,
+  error: AlertCircle,
+  info: Info,
+};
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);
@@ -62,10 +53,4 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       </div>
     </ToastContext.Provider>
   );
-}
-
-export function useToast(): ToastApi {
-  const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error('useToast must be used within a ToastProvider');
-  return ctx;
 }

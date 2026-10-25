@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Plus } from 'lucide-react';
 import { createUser, listUsers, updateUser } from '../../api/admin';
 import { getErrorMessage, getFieldErrors } from '../../api/client';
@@ -15,12 +15,17 @@ function UserForm({ open, user, onClose, onSaved }: { open: boolean; user: Admin
   const [f, setF] = useState({ name: '', email: '', role: 'VOLUNTEER' as Role, phone: '', skills: '', languages: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [prevOpen, setPrevOpen] = useState(open);
+  const [prevUser, setPrevUser] = useState(user);
 
-  useEffect(() => {
-    if (!open) return;
-    setF(user ? { name: user.name, email: user.email, role: user.role, phone: user.phone ?? '', skills: user.skills ?? '', languages: user.languages ?? '' } : { name: '', email: '', role: 'VOLUNTEER', phone: '', skills: '', languages: '' });
-    setErrors({});
-  }, [open, user]);
+  if (open !== prevOpen || user !== prevUser) {
+    setPrevOpen(open);
+    setPrevUser(user);
+    if (open) {
+      setF(user ? { name: user.name, email: user.email, role: user.role, phone: user.phone ?? '', skills: user.skills ?? '', languages: user.languages ?? '' } : { name: '', email: '', role: 'VOLUNTEER', phone: '', skills: '', languages: '' });
+      setErrors({});
+    }
+  }
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();

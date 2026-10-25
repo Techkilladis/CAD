@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { updateMe } from '../../api/auth';
 import { getErrorMessage, getFieldErrors } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
@@ -11,10 +11,12 @@ export function VolunteerProfilePage() {
   const [form, setForm] = useState({ name: '', phone: '', skills: '', languages: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [prevUser, setPrevUser] = useState<typeof user>(user);
 
-  useEffect(() => {
+  if (user !== prevUser) {
+    setPrevUser(user);
     if (user) setForm({ name: user.name, phone: user.phone ?? '', skills: user.skills ?? '', languages: user.languages ?? '' });
-  }, [user]);
+  }
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();

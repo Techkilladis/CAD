@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import { LangProvider } from './context/LangContext';
+import { AuthProvider } from './context/AuthProvider';
+import { LangProvider } from './context/LangProvider';
 import { PageLoader, ToastProvider } from './components/ui';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { PublicLayout } from './layouts/PublicLayout';

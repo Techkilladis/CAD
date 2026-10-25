@@ -15,8 +15,9 @@ export function AdminVolunteersPage() {
   const volunteers = useLoad(listVolunteers, []);
   const [filter, setFilter] = useState('');
   const [creating, setCreating] = useState(false);
+  const [now] = useState(() => new Date());
 
-  const open = (shifts.data ?? []).filter((s) => s.status === 'OPEN' && new Date(s.endTime) >= new Date());
+  const open = (shifts.data ?? []).filter((s) => s.status === 'OPEN' && new Date(s.endTime) >= now);
   const rows = (shifts.data ?? []).filter((s) => !filter || s.shelterId === filter);
   const needed = open.reduce((a, s) => a + s.requiredCount, 0);
   const filled = open.reduce((a, s) => a + s.filledCount, 0);

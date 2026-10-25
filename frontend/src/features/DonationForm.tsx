@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { format } from 'date-fns';
 import { createDonation } from '../api/donations';
 import { getErrorMessage, getFieldErrors } from '../api/client';
@@ -19,20 +19,26 @@ export function DonationForm({
   const [type, setType] = useState<ResourceType>('FOOD');
   const [quantity, setQuantity] = useState('');
   const [unit, setUnit] = useState(DEFAULT_UNIT.FOOD);
-  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [date, setDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   const [receipt, setReceipt] = useState('');
   const [receiptFile, setReceiptFile] = useState('');
   const [notes, setNotes] = useState('');
   const [apply, setApply] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [prevOpen, setPrevOpen] = useState(open);
+  const [prevDefaultShelterId, setPrevDefaultShelterId] = useState(defaultShelterId);
+  const [prevShelters, setPrevShelters] = useState(shelters);
 
-  useEffect(() => {
+  if (open !== prevOpen || defaultShelterId !== prevDefaultShelterId || shelters !== prevShelters) {
+    setPrevOpen(open);
+    setPrevDefaultShelterId(defaultShelterId);
+    setPrevShelters(shelters);
     if (open) {
       setShelterId(defaultShelterId ?? shelters[0]?.id ?? '');
       setErrors({});
     }
-  }, [open, defaultShelterId, shelters]);
+  }
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -91,7 +97,7 @@ export function DonationForm({
           <Input label="Unit" value={unit} onChange={(e) => setUnit(e.target.value)} error={errors.unit} />
         </div>
         <div className="grid sm:grid-cols-2 gap-3">
-          <Input label="Date received" type="date" max={format(new Date(), 'yyyy-MM-dd')} value={date} onChange={(e) => setDate(e.target.value)} error={errors.receivedDate} />
+          <Input label="Date received" type="date" max={date} value={date} onChange={(e) => setDate(e.target.value)} error={errors.receivedDate} />
           <Input label="Receipt number" value={receipt} onChange={(e) => setReceipt(e.target.value)} error={errors.receiptRef} />
         </div>
         <Input label="Receipt file name (reference only)" value={receiptFile} onChange={(e) => setReceiptFile(e.target.value)} hint="Files are not uploaded in this prototype; only a reference is stored." />

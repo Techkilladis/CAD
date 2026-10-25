@@ -49,10 +49,10 @@ export function OccupantsPanel({ shelterId }: { shelterId: string }) {
   }, [shelterId, queue.offline]);
   const pending = useLoad<Checkin[]>(() => (queue.offline ? Promise.resolve([]) : listCheckins(shelterId, { status: 'PENDING' })), [shelterId, queue.offline]);
 
-  const refresh = () => {
+  function refresh() {
     void overview.reload();
     void pending.reload();
-  };
+  }
 
   if (overview.loading && !overview.data) return <PageLoader />;
   if (overview.error || !overview.data) {

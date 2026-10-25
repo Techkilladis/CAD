@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext } from 'react';
 
 export type Lang = 'en' | 'ta';
 export const LANGS: { code: Lang; label: string }[] = [
@@ -6,10 +6,10 @@ export const LANGS: { code: Lang; label: string }[] = [
   { code: 'ta', label: 'தமிழ்' },
 ];
 
-const KEY = 'shelterLang';
+export const KEY = 'shelterLang';
 
 /** Small label dictionary for the public shelter panels. Shelter content itself comes from the shelter translations table. */
-const DICT: Record<Lang, Record<string, string>> = {
+export const DICT: Record<Lang, Record<string, string>> = {
   en: {
     findShelter: 'Find a shelter',
     bedsFree: 'beds free',
@@ -34,15 +34,15 @@ const DICT: Record<Lang, Record<string, string>> = {
   },
 };
 
-interface LangContextType {
+export interface LangContextType {
   lang: Lang;
   setLang: (l: Lang) => void;
   t: (key: string) => string;
 }
 
-const LangContext = createContext<LangContextType | undefined>(undefined);
+export const LangContext = createContext<LangContextType | undefined>(undefined);
 
-const read = (): Lang => {
+export const read = (): Lang => {
   try {
     const v = localStorage.getItem(KEY);
     return v === 'ta' ? 'ta' : 'en';
@@ -50,20 +50,6 @@ const read = (): Lang => {
     return 'en';
   }
 };
-
-export function LangProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Lang>(read);
-  const setLang = useCallback((l: Lang) => {
-    setLangState(l);
-    try {
-      localStorage.setItem(KEY, l);
-    } catch {
-      /* storage unavailable: the choice just won't persist */
-    }
-  }, []);
-  const value = useMemo<LangContextType>(() => ({ lang, setLang, t: (k) => DICT[lang][k] ?? DICT.en[k] ?? k }), [lang, setLang]);
-  return <LangContext.Provider value={value}>{children}</LangContext.Provider>;
-}
 
 export const useLang = () => {
   const ctx = useContext(LangContext);

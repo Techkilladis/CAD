@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { getStaffShelter, updateShelter } from '../../api/shelters';
 import { getErrorMessage, getFieldErrors } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
@@ -15,10 +15,12 @@ export function CoordinatorShelterPage() {
   const [form, setForm] = useState({ description: '', contactPhone: '', contactEmail: '', contactInfo: '', medicalSupport: false, status: 'ACTIVE' as string });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [prevS, setPrevS] = useState<typeof s>(s);
 
-  useEffect(() => {
+  if (s !== prevS) {
+    setPrevS(s);
     if (s) setForm({ description: s.description ?? '', contactPhone: s.contactPhone ?? '', contactEmail: s.contactEmail ?? '', contactInfo: s.contactInfo ?? '', medicalSupport: s.medicalSupport, status: s.status });
-  }, [s]);
+  }
 
   if (!selectedShelterId) return <EmptyState title="No shelter assigned" />;
   if (loading && !s) return <PageLoader />;

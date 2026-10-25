@@ -1,7 +1,7 @@
 import { useId } from 'react';
 
 // Plain SVG/CSS charts (no chart library). Colours are fixed tokens that work on a white card.
-export const CHART_COLORS = ['#2563eb', '#16a34a', '#f59e0b', '#dc2626', '#7c3aed', '#0891b2', '#64748b'];
+const CHART_COLORS = ['#2563eb', '#16a34a', '#f59e0b', '#dc2626', '#7c3aed', '#0891b2', '#64748b'];
 
 export interface Datum {
   label: string;

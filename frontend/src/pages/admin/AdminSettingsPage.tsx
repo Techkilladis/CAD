@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { getSettings, updateSettings } from '../../api/admin';
 import { getErrorMessage } from '../../api/client';
 import type { SettingsPayload } from '../../api/types';
@@ -15,10 +15,12 @@ export function AdminSettingsPage() {
   const [form, setForm] = useState<Record<Key, string>>({ overcrowdingThreshold: '', criticalMedicalCount: '', transferSurplusMultiplier: '', alertScanIntervalMs: '' });
   const [errors, setErrors] = useState<Partial<Record<Key, string>>>({});
   const [saving, setSaving] = useState(false);
+  const [prevData, setPrevData] = useState<typeof data>(data);
 
-  useEffect(() => {
+  if (data !== prevData) {
+    setPrevData(data);
     if (data) setForm(Object.fromEntries(KEYS.map((k) => [k, String(data.settings[k])])) as Record<Key, string>);
-  }, [data]);
+  }
 
   if (loading && !data) return <PageLoader />;
   if (error || !data) return <ErrorState message={error ?? 'Could not load settings'} onRetry={reload} />;

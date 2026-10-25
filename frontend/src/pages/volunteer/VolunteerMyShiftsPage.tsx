@@ -12,6 +12,7 @@ export function VolunteerMyShiftsPage() {
   const { data, loading, error, reload, loadedAt } = useLoad<Shift[]>(myShifts, []);
   const [target, setTarget] = useState<Shift | null>(null);
   const [busy, setBusy] = useState(false);
+  const [now] = useState(() => new Date());
 
   const cancel = async () => {
     if (!target) return;
@@ -28,8 +29,8 @@ export function VolunteerMyShiftsPage() {
     }
   };
 
-  const upcoming = (data ?? []).filter((s) => new Date(s.endTime) >= new Date());
-  const past = (data ?? []).filter((s) => new Date(s.endTime) < new Date());
+  const upcoming = (data ?? []).filter((s) => new Date(s.endTime) >= now);
+  const past = (data ?? []).filter((s) => new Date(s.endTime) < now);
 
   const Row = ({ s, canCancel }: { s: Shift; canCancel: boolean }) => (
     <li className="px-5 py-3 flex flex-wrap items-center justify-between gap-3">
