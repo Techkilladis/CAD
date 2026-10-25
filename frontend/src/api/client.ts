@@ -4,6 +4,8 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export const apiClient = axios.create({
   baseURL: API_URL,
+  // Fail fast instead of hanging on a stalled connection (load balancers typically cut at 30-60 s).
+  timeout: 20000,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -21,9 +23,11 @@ export const isNetworkError = (err: unknown): boolean =>
 /** Human-readable message for toasts. */
 export function getErrorMessage(err: unknown, fallback = 'Something went wrong'): string {
   if (axios.isAxiosError(err)) {
+    if (err.code === 'ECONNABORTED') return 'The server took too long to respond. Please try again.';
     if (!err.response) return 'Cannot reach the server. Check your connection and try again.';
-    const data = err.response.data as { error?: string } | undefined;
-    if (data?.error) return data.error;
+    const data = err.response.data as { error?: string; requestId?: string } | undefined;
+    // 5xx responses carry a request id that matches the server log line, so support can trace the failure.
+    if (data?.error) return data.requestId ? `${data.error} (ref ${data.requestId.slice(0, 8)})` : data.error;
     return `${fallback} (HTTP ${err.response.status})`;
   }
   if (err instanceof Error) return err.message;

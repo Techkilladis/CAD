@@ -46,6 +46,9 @@ Optional: `ALERT_SCAN_INTERVAL_MS=60000` in `backend/.env` starts the periodic a
 ## Demo accounts (after seeding)
 Admins: Anitha Rajan, Suresh Babu · Coordinators: Priya Venkatesh (Velachery, Tambaram), Karthik Subramanian (Adyar, Perungudi), Meena Krishnan (Mudichur, T. Nagar) · Volunteers: Divya Lakshmi, Arun Kumar, Fatima Begum. Demo registration codes `SH-DEMO01..03` are pending at Velachery/Tambaram.
 
+## Containers (optional, no cloud services)
+`docker compose up --build` starts Postgres, the API and the built SPA (http://localhost:8080); then run `docker compose exec api npx prisma migrate deploy`. Environment variables are documented in `backend/.env.example` and `frontend/.env.example`. See `docs/aws-migration.md` for deployment-readiness details.
+
 ## Known limitations (honest list)
 - Demo authentication only (no passwords); `x-user-id` header.
 - Notifications are console/DB only; receipts are a reference string, not an uploaded file.

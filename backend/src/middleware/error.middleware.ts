@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import { Prisma } from '@prisma/client';
 import { HttpError } from '../utils/httpError';
+import { logger } from '../utils/logger';
 
 export const errorHandler = (err: any, req: Request, res: Response, _next: NextFunction) => {
   if (err instanceof HttpError) {
@@ -35,6 +36,7 @@ export const errorHandler = (err: any, req: Request, res: Response, _next: NextF
     return res.status(err.statusCode).json({ error: err.message || 'Request failed' });
   }
 
-  if (process.env.NODE_ENV !== 'test') console.error(err && err.stack ? err.stack : err);
-  res.status(500).json({ error: 'Internal Server Error' });
+  const requestId = res.locals.requestId as string | undefined;
+  logger.error('unhandled error', { requestId, method: req.method, path: req.originalUrl.split('?')[0], err });
+  res.status(500).json({ error: 'Internal Server Error', ...(requestId ? { requestId } : {}) });
 };

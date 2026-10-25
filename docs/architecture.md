@@ -17,7 +17,9 @@ Express + TypeScript  :5000
 - **controllers/** parse input with zod (`schemas/`) and call one service method (`asyncHandler`).
 - **services/** hold all business rules and transactions. `AlertService.evaluateShelter(tx, shelterId)` is the **only** alert path.
 - **utils/access.ts** is the single place that decides shelter ownership (`getManagedShelterIds`, `assertShelterAccess`, `scopeShelterFilter`).
-- **middleware/error.middleware.ts** maps `HttpError`, zod errors and Prisma `P2025/P2002/P2003` to 404/400/409.
+- **app.ts / server.ts**: `createApp(env)` builds the Express app with no side effects; `server.ts` loads config (`config/env.ts`), listens, starts the alert scheduler and handles graceful shutdown. Tests import the app from `server.ts`.
+- **middleware/request.middleware.ts** tags each request with `x-request-id`, writes a structured access-log line (`utils/logger.ts`) and sets baseline security headers.
+- **middleware/error.middleware.ts** maps `HttpError`, zod errors and Prisma `P2025/P2002/P2003` to 404/400/409; anything else is logged with its request id and returned as 500 with that `requestId`.
 - **auth.middleware.ts** is the only file that reads `x-user-id`.
 
 ### Integration seams (`backend/src/integrations/`)

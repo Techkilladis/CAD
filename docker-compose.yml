@@ -1,0 +1,32 @@
+# Local container parity check: Postgres + API + SPA. Not used for development (use `npm run dev`).
+# Usage: docker compose up --build   then   docker compose exec api npx prisma migrate deploy
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: safehaven
+    ports: ["5433:5432"]
+    volumes: [dbdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 10
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql://postgres:password@db:5432/safehaven
+      CORS_ORIGIN: http://localhost:8080
+      ALERT_SCHEDULER_ENABLED: "true"
+      TRUST_PROXY: "1"
+    depends_on:
+      db: { condition: service_healthy }
+    ports: ["5000:5000"]
+  web:
+    build:
+      context: ./frontend
+      args: { VITE_API_URL: /api }
+    depends_on: [api]
+    ports: ["8080:80"]
+volumes:
+  dbdata:

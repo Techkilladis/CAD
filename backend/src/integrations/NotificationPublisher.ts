@@ -1,3 +1,5 @@
+import { logger } from '../utils/logger';
+
 // AWS replacement: Amazon SNS topic (SMS/e-mail/push) or SES, selected per alert severity.
 export interface NotificationEvent {
   type: string;
@@ -15,9 +17,7 @@ export interface NotificationPublisher {
 /** Local implementation: console log only. */
 export class LocalConsoleNotificationPublisher implements NotificationPublisher {
   async publish(event: NotificationEvent): Promise<string> {
-    if (process.env.NODE_ENV !== 'test') {
-      console.log(`[notify:LOCAL] ${event.severity} ${event.type} shelter=${event.shelterId} - ${event.message}`);
-    }
+    logger.info('notification', { channel: 'LOCAL', ...event });
     return 'LOCAL';
   }
 }

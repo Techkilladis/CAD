@@ -4,7 +4,9 @@ Base URL: `http://localhost:5000/api`. JSON in, JSON out.
 
 **Auth (demo).** Send `x-user-id: <user id>` to act as a local user. Roles: `ADMIN`, `COORDINATOR`, `VOLUNTEER`; no header means *public*. Unknown or deactivated ids get `401`. `GET /auth/users` lists the demo accounts for the login picker. Coordinators may only act on shelters where `shelter.coordinatorId` is their id (`403` otherwise). Approvers are always the authenticated user, never a body field.
 
-**Errors.** `{ "error": "message", "details"?: [{ "path", "message" }] }`. `400` validation or business rule, `401` not signed in, `403` wrong role/shelter, `404` not found, `409` conflict or already-done action (idempotent replays).
+**Errors.** `{ "error": "message", "details"?: [{ "path", "message" }] }`. `400` validation or business rule, `401` not signed in, `403` wrong role/shelter, `404` not found, `409` conflict or already-done action (idempotent replays). `500` responses also include `requestId`. Unknown `/api/*` paths return `404 {"error":"Not found"}`.
+
+**Request ids.** Every response carries an `x-request-id` header (an incoming valid `x-request-id` is reused, otherwise one is generated); it matches the server's access-log line.
 
 **Privacy.** No public endpoint returns occupant names, contacts or medical data. Public shelter data exposes capacity, status, stock *levels* (HEALTHY / LOW / CRITICAL / EMPTY) and shelter contact details only.
 
@@ -105,4 +107,4 @@ Legend: 🌐 public · 🔑 any signed-in user · 🛡 role(s) listed.
 `GET /audit?entity&userId&action&page&pageSize` · `GET /audit/facets` · `GET/PATCH /settings` (validated ranges; audited). All 🛡 ADMIN.
 
 ## Health
-`GET /health` → `{status:"ok"}`.
+`GET /api/health` → `{status:"ok"}` (liveness). `GET /api/health/ready` → `{status:"ready"}`, or 503 `{status:"unavailable"}` when the database is unreachable (readiness).

@@ -1,4 +1,5 @@
 import { AlertService } from '../services/alert.service';
+import { logger } from '../utils/logger';
 
 // AWS replacement: Amazon EventBridge Scheduler invoking a Lambda that calls AlertService.runGlobalCheck().
 let timer: NodeJS.Timeout | null = null;
@@ -25,9 +26,9 @@ export function startAlertScheduler(opts: SchedulerOptions): boolean {
     running = true;
     try {
       const r = await run();
-      if (process.env.NODE_ENV !== 'test') console.log('[alert-scheduler] scan complete', r);
+      logger.info('alert scan complete', { result: r });
     } catch (e) {
-      console.error('[alert-scheduler] scan failed', e);
+      logger.error('alert scan failed', { err: e });
     } finally {
       running = false;
     }

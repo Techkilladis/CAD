@@ -14,6 +14,10 @@ async function audit(userId: string | null, action: string, entity: string, enti
 
 async function main() {
   if (!/safehaven/.test(process.env.DATABASE_URL ?? '')) throw new Error('DATABASE_URL not set');
+  // The seed TRUNCATEs every table. Never let it run against a deployed database by accident.
+  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_SEED !== '1') {
+    throw new Error('Refusing to seed with NODE_ENV=production (set ALLOW_SEED=1 to override)');
+  }
   console.log('Clearing old data...');
   const tables = await prisma.$queryRaw<{ tablename: string }[]>`
     SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename <> '_prisma_migrations'`;

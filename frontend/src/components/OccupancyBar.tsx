@@ -13,7 +13,7 @@ export function OccupancyBar({ occupied, total, className, showLabel = true }: {
           <span className="font-medium">{pct}%</span>
         </div>
       )}
-      <div className="h-2 rounded-full bg-gray-200 overflow-hidden" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+      <div className="h-2.5 rounded-full bg-gray-100 overflow-hidden" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
         <div className={clsx('h-full rounded-full transition-all', occupancyColor(pct))} style={{ width: `${Math.min(100, pct)}%` }} />
       </div>
     </div>

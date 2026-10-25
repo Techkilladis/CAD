@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { HeartPulse, LogOut, Menu, X, Globe2, User as UserIcon } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../context/AuthContext';
 import { NAV } from '../nav';
-import { StatusBadge } from '../components/ui';
+import { PageLoader, StatusBadge } from '../components/ui';
 
 const roleLabel = { ADMIN: 'Administrator', COORDINATOR: 'Coordinator', VOLUNTEER: 'Volunteer' } as const;
 
@@ -18,12 +18,12 @@ export function ConsoleLayout() {
   const showShelterPicker = user.role === 'COORDINATOR' && user.managedShelters.length > 0;
 
   const sidebar = (
-    <div className="flex h-full flex-col bg-slate-900 text-slate-100">
+    <div className="flex h-full flex-col bg-gray-900 text-slate-100">
       <Link to="/" className="flex items-center gap-2 px-5 h-16 border-b border-slate-800">
-        <span className="p-1.5 bg-blue-600 rounded-lg">
+        <span className="grid h-8 w-8 place-items-center bg-blue-600 rounded-xl">
           <HeartPulse className="h-5 w-5 text-white" />
         </span>
-        <span className="text-lg font-bold">SafeHaven</span>
+        <span className="text-lg font-extrabold tracking-tight">SafeHaven</span>
       </Link>
 
       {showShelterPicker && (
@@ -64,8 +64,8 @@ export function ConsoleLayout() {
             onClick={() => setOpen(false)}
             className={({ isActive }) =>
               clsx(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                isActive ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+                isActive ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
               )
             }
           >
@@ -127,7 +127,9 @@ export function ConsoleLayout() {
 
       <main className="flex-1 lg:ml-64 min-w-0">
         <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-          <Outlet />
+          <Suspense fallback={<PageLoader />}>
+            <Outlet />
+          </Suspense>
         </div>
       </main>
     </div>

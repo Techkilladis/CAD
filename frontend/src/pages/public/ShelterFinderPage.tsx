@@ -73,13 +73,15 @@ export function ShelterFinderPage() {
   const list = data ?? [];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">{t('findShelter')}</h1>
-        <p className="text-gray-600 mt-1">Search relief shelters, check free beds and supplies, then register your family.</p>
+    <div>
+      <div className="bg-gradient-to-br from-blue-950 via-blue-900 to-blue-700 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-24">
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">{t('findShelter')}</h1>
+          <p className="text-blue-100/90 mt-2 max-w-2xl">Search relief shelters, check free beds and supplies, then register your family.</p>
+        </div>
       </div>
-
-      <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6 space-y-3">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10 -mt-14">
+      <div className="bg-white ring-1 ring-gray-200/80 shadow-xl rounded-2xl p-5 mb-8 space-y-4 relative z-10">
         <div className="grid md:grid-cols-4 gap-3 items-end">
           <SearchInput value={q} onChange={setQ} placeholder="Search by name or area" className="md:col-span-2" />
           <Select label="Has supply" value={resource} onChange={(e) => setResource(e.target.value as ResourceType | '')}>
@@ -131,18 +133,18 @@ export function ShelterFinderPage() {
               <article
                 key={s.id}
                 onMouseEnter={() => setSelected(s.id)}
-                className={`bg-white border rounded-xl p-4 transition-shadow hover:shadow-md ${selected === s.id ? 'border-blue-400' : 'border-gray-200'}`}
+                className={`bg-white border rounded-2xl p-5 shadow-sm transition hover:shadow-md ${selected === s.id ? 'border-blue-500 ring-2 ring-blue-100' : 'border-gray-200'}`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <h2 className="font-semibold text-gray-900">{s.translation?.name || s.name}</h2>
+                    <h2 className="font-bold text-gray-900 text-base">{s.translation?.name || s.name}</h2>
                     <p className="text-xs text-gray-500 mt-0.5">{s.address}</p>
                   </div>
                   <StatusBadge status={s.status} />
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-600">
-                  {s.distance !== undefined && <span className="font-medium text-blue-700">{s.distance} km away</span>}
-                  <span>{s.availableCapacity} {t('bedsFree')}</span>
+                <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600">
+                  <span><span className="text-3xl font-extrabold tracking-tight text-gray-900">{s.availableCapacity}</span> <span className="text-sm">{t('bedsFree')}</span></span>
+                  {s.distance !== undefined && <span className="font-semibold text-blue-700">{s.distance} km away</span>}
                   {s.medicalSupport && (
                     <span className="inline-flex items-center gap-1 text-green-700">
                       <Stethoscope className="h-3.5 w-3.5" /> {t('medicalSupport')}
@@ -152,13 +154,13 @@ export function ShelterFinderPage() {
                 <OccupancyBar occupied={s.capacityOccupied} total={s.capacityTotal} className="mt-3" />
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {s.resources.map((r) => (
-                    <span key={r.resourceType} className="inline-flex items-center gap-1 text-xs bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5">
+                    <span key={r.resourceType} className="inline-flex items-center gap-1 text-xs bg-gray-50 border border-gray-200 rounded-lg px-2 py-0.5">
                       {RESOURCE_LABEL[r.resourceType]} <StatusBadge status={r.stockStatus} className="!px-1.5 !py-0" />
                     </span>
                   ))}
                 </div>
                 <div className="mt-4 flex gap-2">
-                  <Link to={`/shelters/${s.id}`} className="inline-flex px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 hover:bg-gray-50">
+                  <Link to={`/shelters/${s.id}`} className="inline-flex items-center px-3.5 py-1.5 text-xs font-semibold rounded-xl border border-gray-300 text-gray-800 shadow-sm hover:bg-gray-50">
                     {t('viewDetails')}
                   </Link>
                   {(s.status === 'ACTIVE') && s.availableCapacity > 0 && (
@@ -175,6 +177,7 @@ export function ShelterFinderPage() {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }
